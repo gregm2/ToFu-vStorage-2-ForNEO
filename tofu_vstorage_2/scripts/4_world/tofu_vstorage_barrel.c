@@ -1,91 +1,61 @@
-class tofu_vstorage_barrel: Barrel_Red {
+modded class Barrel_ColorBase
+{
 	
 	protected bool m_vst_hasitems;
 	protected int m_vst_steamid1;
 	protected int m_vst_steamid2;
 	protected int m_vst_steamid3;
-	protected bool m_vst_wasplaced;
+	protected bool m_vst_wasplaced; // On NEO we will be using this for claimed
 	
-	protected int m_didVStorage;	
+	protected int m_didVStorage;
 	
 	protected int m_auto_close_random_seconds_min;
 	protected int m_auto_close_random_seconds_max;
 
 	//protected ref array<string> m_BlackListItems;
 
-	
 
-	void tofu_vstorage_barrel()
+	void Barrel_ColorBase()
 	{
+		// constructors should not require 'super' calls
 		m_vst_steamid1 	= 0;
 		m_vst_steamid2 	= 0;
 		m_vst_steamid3 	= 0;
 		m_vst_wasplaced = false;
 		
 		m_didVStorage = false;	
-				
-		RegisterNetSyncVariableBool( "m_vst_hasitems" );
-		RegisterNetSyncVariableInt( "m_vst_steamid1" );
-		RegisterNetSyncVariableInt( "m_vst_steamid2" );
-		RegisterNetSyncVariableInt( "m_vst_steamid3" );
-		RegisterNetSyncVariableBool( "m_vst_wasplaced" );
 
 		m_auto_close_random_seconds_min = g_Game.GetVSTConfig().Get_auto_close_random_seconds_min();
 		m_auto_close_random_seconds_max = g_Game.GetVSTConfig().Get_auto_close_random_seconds_max();
 
 		if(GetGame().IsDedicatedServer())
 		{
-			
-			string vstoreClassName = GetType();
-			
-			if(vstoreClassName != "tofu_vstorage_q_barrel_express")
-			{
-				if(g_Game.GetVSTConfig().Get_script_logging() == 1)
-					Print("[vStorage] scheduling open/close check in 60 sec.");
-				
-				GetGame().GetCallQueue(CALL_CATEGORY_SYSTEM).CallLater(vst_timer_start, 60000, false, false);
-				if(vstoreClassName.Contains("_1000"))
-				{
-					GetGame().GetCallQueue(CALL_CATEGORY_SYSTEM).CallLater(vstorageLifeRefresh, 30000, false, this);
-				}
-					
-			}
-			
-		}
-			
-	}
-	
-	void vstorageLifeRefresh(EntityAI ent)
-	{
-		if(g_Game.GetVSTConfig().Get_script_logging() == 1)
-			Print("[vStorage] Auto set Lifetime of "+ent.GetType()+" at pos "+ent.GetPosition());
-		SetLifetime(3888000);
-	}
-	
-	/*
-	void ladeConfig()
-	{
-		m_BlackListItems = g_Game.GetVSTConfig().Get_Blacklist();
-	}
-	*/
-	
-	
-	override void OnPlacementComplete( Man player, vector position = "0 0 0", vector orientation = "0 0 0" )
-	{
-		super.OnPlacementComplete( player, position, orientation );
-		if(GetGame().IsServer())
-		{
-			string steamid = player.GetIdentity().GetPlainId();
 			if(g_Game.GetVSTConfig().Get_script_logging() == 1)
-				Print("[vStorage] player "+steamid+ "placed barrel "+GetType()+" at pos "+GetPosition());
-			
-			//string steamid_part1 = "999999";
-			string steamid_part1 = steamid.Substring(0,6);
-			string steamid_part2 = steamid.Substring(6,6);
-			string steamid_part3 = steamid.Substring(12,5);
-			saveSteamid(steamid_part1,steamid_part2,steamid_part3);
+				Print("[vStorage] scheduling open/close check in 60 sec.");
+				
+			GetGame().GetCallQueue(CALL_CATEGORY_SYSTEM).CallLater(vst_timer_start, 60000, false, false);
 		}
+			
 	}
+	
+
+// TODO MOVE THIS TO CLOSE ACTION
+//	override void OnPlacementComplete( Man player, vector position = "0 0 0", vector orientation = "0 0 0" )
+//	{
+//		super.OnPlacementComplete( player, position, orientation );
+//		if(GetGame().IsServer())
+//		{
+//			string steamid = player.GetIdentity().GetPlainId();
+//			if(g_Game.GetVSTConfig().Get_script_logging() == 1)
+//				Print("[vStorage] player "+steamid+ "placed barrel "+GetType()+" at pos "+GetPosition());
+//			
+//			//string steamid_part1 = "999999";
+//			string steamid_part1 = steamid.Substring(0,6);
+//			string steamid_part2 = steamid.Substring(6,6);
+//			string steamid_part3 = steamid.Substring(12,5);
+//			saveSteamid(steamid_part1,steamid_part2,steamid_part3);
+//		}
+//	}
 	
 	
 	void saveSteamid(string a, string b, string c) {
@@ -112,7 +82,6 @@ class tofu_vstorage_barrel: Barrel_Red {
 		//Print("[vStorage] m_vst_steamid3 "+m_vst_steamid3);
 				
 		m_vst_wasplaced = true;
-		SetSynchDirty();
 	}
 	
 	bool canInteract(string steamid)
@@ -196,7 +165,6 @@ class tofu_vstorage_barrel: Barrel_Red {
 		m_vst_steamid1 = 0;
 		m_vst_steamid2 = 0;
 		m_vst_steamid3 = 0;
-		SetSynchDirty();
 	}
 
 	void vst_timer_start(bool express = false)
@@ -232,6 +200,17 @@ class tofu_vstorage_barrel: Barrel_Red {
 
 		bool PlayerIsAround = false;
 
+// CEApi GetCEApi();
+// 	\brief Check if there is a player within a radius
+//		\param vPos \p vector The center point
+//		\param fDistance \p float The radius around the center point
+//		\return \p bool Returns false when there is a player inside supplied area, true when it successfully avoided players
+//	@code
+//		GetCEApi().AvoidPlayer(Vector(500, 0, 500), 20);
+//	@endcode
+//	*/
+//	proto native bool AvoidPlayer(vector vPos, float fDistance); // return false when there is a player
+//	/**
 		for (int i = 0; i < items_in_vicinity.Count(); i++)
 		{
 			EntityAI item_in_vicinity = EntityAI.Cast(items_in_vicinity.Get(i));
@@ -260,7 +239,6 @@ class tofu_vstorage_barrel: Barrel_Red {
 	void setItems(bool items)
 	{
 		m_vst_hasitems = items;
-		SetSynchDirty();
 	}
 	
 	override void OnStoreSave(ParamsWriteContext ctx)
@@ -268,11 +246,39 @@ class tofu_vstorage_barrel: Barrel_Red {
 		
 		super.OnStoreSave(ctx);
 		
-		ctx.Write(m_vst_hasitems);
-		ctx.Write(m_vst_steamid1);
-		ctx.Write(m_vst_steamid2);
-		ctx.Write(m_vst_steamid3);
-		ctx.Write(m_vst_wasplaced);
+		autoptr tofuvStorageContainerMeta containerObjMeta = new tofuvStorageContainerMeta();
+		
+		string filename;
+		
+		if(this.GetType() != "tofu_vstorage_q_barrel_express")
+		{
+			filename = "container_"+b1+"_"+b2+"_"+b3+"_"+b4+".meta";
+		}
+		else
+		{
+			filename = steamid+".meta";
+		}
+		
+		containerObjMeta.m_vst_hasitems = m_vst_hasitems;
+		containerObjMeta.m_vst_steamid1 = m_vst_steamid1;
+		containerObjMeta.m_vst_steamid2 = m_vst_steamid2;
+		containerObjMeta.m_vst_steamid3 = m_vst_steamid3;
+		containerObjMeta.m_vst_wasplaced = m_vst_wasplaced;
+		
+		FileSerializer file = new FileSerializer();
+		if (file.Open("$profile:ToFuVStorage/" + filename, FileMode.WRITE))
+		{
+			file.Write(containerObjMeta)
+			file.Close();
+			//Print("Metadata Serialized and saved");
+		}
+
+		// don't corrupt storage on server side only mod
+		//ctx.Write(m_vst_hasitems);
+		//ctx.Write(m_vst_steamid1);
+		//ctx.Write(m_vst_steamid2);
+		//ctx.Write(m_vst_steamid3);
+		//ctx.Write(m_vst_wasplaced);
 		
 		//Print("[vStorage] saving m_vst_wasplaced "+m_vst_wasplaced);
 		//Print("[vStorage] saving m_vst_steamid1 "+m_vst_steamid1);
@@ -288,6 +294,38 @@ class tofu_vstorage_barrel: Barrel_Red {
 		if ( !super.OnStoreLoad(ctx, version) )
 			return false;
 		
+		string filename;
+		
+		if(this.GetType() != "tofu_vstorage_q_barrel_express")
+		{
+			filename = "container_"+b1+"_"+b2+"_"+b3+"_"+b4+".meta";
+		}
+		else
+		{
+			filename = steamid+".meta";
+		}
+		
+		// before the first save, meta file won't exist, especially loading this into a live server
+		if (!FileExist(filename))
+		{
+			return true;
+		}
+		
+		autoptr tofuvStorageContainerMeta containerObjMeta = new tofuvStorageContainerMeta();
+		FileSerializer file = new FileSerializer();
+		if (file.Open("$profile:ToFuVStorage/" + filename, FileMode.READ))
+		{
+			file.Read(containerObjMeta)
+			file.Close();
+			//Print("Metadata Serialized and saved");
+		}
+
+		m_vst_hasitems = containerObjMeta.m_vst_hasitems;
+		m_vst_steamid1 = containerObjMeta.m_vst_steamid1;
+		m_vst_steamid2 = containerObjMeta.m_vst_steamid2;
+		m_vst_steamid3 = containerObjMeta.m_vst_steamid3;
+		m_vst_wasplaced = containerObjMeta.m_vst_wasplaced;
+
 		/*
 		if (ctx.Read(m_vst_hasitems)) { Print("[vStorage] reading m_vst_hasitems "+m_vst_hasitems); }
 		if (ctx.Read(m_vst_steamid1)) { Print("[vStorage] reading m_vst_steamid1 "+m_vst_steamid1); }
@@ -296,14 +334,14 @@ class tofu_vstorage_barrel: Barrel_Red {
 		if (ctx.Read(m_vst_wasplaced)) { Print("[vStorage] reading m_vst_wasplaced "+m_vst_wasplaced); }
 		*/
 		
-		if (ctx.Read(m_vst_hasitems)) {  }
-		if (ctx.Read(m_vst_steamid1)) {  }
-		if (ctx.Read(m_vst_steamid2)) {  }
-		if (ctx.Read(m_vst_steamid3)) {  }
-		if (ctx.Read(m_vst_wasplaced)) {  }
+		// server side only, don't mess up serializer's file pointer
+		//if (ctx.Read(m_vst_hasitems)) {  }
+		//if (ctx.Read(m_vst_steamid1)) {  }
+		//if (ctx.Read(m_vst_steamid2)) {  }
+		//if (ctx.Read(m_vst_steamid3)) {  }
+		//if (ctx.Read(m_vst_wasplaced)) {  }
 			
 		
-		SetSynchDirty();
 		return true;
 	}
 	
@@ -1215,61 +1253,5 @@ class tofu_vstorage_barrel: Barrel_Red {
 		
 	}
 	
-	void vrestore_drugexchange(tofuvStorageObj item, Object target_object)
-	{
-		
-		EntityAI ntarget = EntityAI.Cast( target_object );
-		ItemBase new_item;
-		vector position;
-		
-		auto objects = new array<Object>;
-		GetGame().GetObjectsAtPosition3D( target_object.GetPosition(), 2, objects, NULL );
-		foreach ( Object obj: objects ) {
-			if(obj.IsMan()) {
-				position = obj.GetPosition();
-				break;
-			}
-		}
-		
-		switch(item.itemName)
-		{
-			case "CP_CannabisSeedsPackSkunk":
-				new_item = ItemBase.Cast(GetGame().CreateObject("CP_CannabisBrickSkunk", position));
-			break;
-			
-			case "CP_CannabisSeedsPackBlue":
-				new_item = ItemBase.Cast(GetGame().CreateObject("CP_CannabisBrickBlue", position));
-			break;
-			
-			case "CP_CannabisSeedsPackKush":
-				new_item = ItemBase.Cast(GetGame().CreateObject("CP_CannabisBrickKush", position));
-			break;
-			
-			case "CP_CannabisSeedsPackStardawg":
-				new_item = ItemBase.Cast(GetGame().CreateObject("CP_CannabisBrickStardawg", position));
-			break;
-			
-			case "CP_CannabisSeedsPackFuture":
-				new_item = ItemBase.Cast(GetGame().CreateObject("CP_CannabisBrickFuture", position));
-			break;
-			
-			case "CP_CannabisSeedsPackS1":
-				new_item = ItemBase.Cast(GetGame().CreateObject("CP_CannabisBrickS1", position));
-			break;
-			
-			case "CP_CannabisSeedsPackNomad":
-				new_item = ItemBase.Cast(GetGame().CreateObject("CP_CannabisBrickNomad", position));
-			break;
-			
-			case "CP_CannabisSeedsPackBlackFrost":
-				new_item = ItemBase.Cast(GetGame().CreateObject("CP_CannabisBrickBlackFrost", position));
-			break;
-			
-			case "DP_CocaSeedsPack":
-				new_item = ItemBase.Cast(GetGame().CreateObject("DP_CocaBrick", position));
-			break;
-			
-		}
-	}
-	
+
 };
