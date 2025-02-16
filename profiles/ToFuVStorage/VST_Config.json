@@ -16,7 +16,10 @@
         "Lard",
         "Carp",
         "Mackerel",
-        "tofu_vstorage_barrel"
+        "Barrel_Green",
+        "Barrel_Blue",
+        "Barrel_Red",
+        "Barrel_Yellow"
     ],
     "Admins": [
         "1234567890"

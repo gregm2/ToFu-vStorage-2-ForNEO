@@ -1,6 +1,6 @@
 class VST_Config
 {	
-		
+	
 	static const string CONFIG_ROOT = "$profile:ToFuVStorage/";
     static const string FULLPATH = "$profile:ToFuVStorage/VST_Config.json";
 	
@@ -9,6 +9,37 @@ class VST_Config
 	protected int auto_close_random_seconds_min = 120;
 	protected int auto_close_random_seconds_max = 240;
 
+	protected string claim_message_title = "Barrel Claimed";
+	protected string claim_message_body = "You have claimed this barrel and it will be locked to others when closed. To unclaim this barrel, simply close it when it is empty";
+	protected string claim_message_icon = "set:dayz_inventory image:barrel";
+	protected float claim_message_show_time_secs = 5.0;
+	
+	protected string unclaim_message_title = "Barrel Unclaimed";
+	protected string unclaim_message_body = "You have unclaimed this barrel and others may now claim it. To reclaim this barrel, simply close it with any item in it";
+	protected string unclaim_message_icon = "set:dayz_inventory image:barrel";
+	protected float unclaim_message_show_time_secs = 5.0;
+
+	protected string locked_message_title = "Barrel Locked";
+	protected string locked_message_body = "Another player has claimed this barrel and it is locked, preventing other others from opening it or damaging it";
+	protected string locked_message_icon = "set:dayz_inventory image:barrel";
+	protected float locked_message_show_time_secs = 5.0;
+
+	protected string cooldown_message_title = "Barrel action cooldown";
+	protected string cooldown_message_body = "Do not perform actions on virtual storage barrels too frequently, try again after a few seconds";
+	protected string cooldown_message_icon = "set:dayz_inventory image:barrel";
+	protected float cooldown_message_show_time_secs = 5.0;
+	
+	protected string blacklist_message_title = "Invalid item for virtual storage";
+	protected string blacklist_message_body = "The item you have placed in the barrel is incompatible with virtual storage and has been ejected. Look for it in vicinity view";
+	protected string blacklist_message_icon = "set:dayz_inventory image:barrel";
+	protected float blacklist_message_show_time_secs = 5.0;
+	
+	protected int notification_cooldown_secs = 10;
+	protected int action_cooldown_secs = 5;
+	
+	/* added just in-case server-side admin notes can be done */
+	protected bool block_paper_with_writing = true;
+	
 	protected ref array<string> Blacklist;
 	protected ref array<string> Admins;
 	
@@ -52,6 +83,36 @@ class VST_Config
 		auto_close_random_seconds_min = 120;
 		auto_close_random_seconds_max = 240;
 		
+		claim_message_title = "Barrel Claimed";
+		claim_message_body = "You have claimed this barrel and it will be locked to others when closed. To unclaim this barrel, simply close it when it is empty";
+		claim_message_icon = "set:dayz_inventory image:barrel";
+		claim_message_show_time_secs = 5.0;
+		
+		unclaim_message_title = "Barrel Unclaimed";
+		unclaim_message_body = "You have unclaimed this barrel and others may now claim it. To reclaim this barrel, simply close it with any item in it";
+		unclaim_message_icon = "set:dayz_inventory image:barrel";
+		unclaim_message_show_time_secs = 5.0;
+	
+		locked_message_title = "Barrel Locked";
+		locked_message_body = "Another player has claimed this barrel and it is locked, preventing other others from opening it or damaging it";
+		locked_message_icon = "set:dayz_inventory image:barrel";
+		locked_message_show_time_secs = 5.0;
+	
+		cooldown_message_title = "Barrel contents saving";
+		cooldown_message_body = "Please be patient while contents are saved, then you may re-open the barrel";
+		cooldown_message_icon = "set:dayz_inventory image:barrel";
+		cooldown_message_show_time_secs = 5.0;
+
+		blacklist_message_title = "Invalid item for virtual storage";
+		blacklist_message_body = "The item you have placed in the barrel is incompatible with virtual storage and has been ejected. Look for it in vicinity view";
+		blacklist_message_icon = "set:dayz_inventory image:barrel";
+		blacklist_message_show_time_secs = 5.0;
+				
+		notification_cooldown_secs = 10;
+		close_cooldown_secs = 5;
+		
+		block_paper_with_writing = true;
+		
 		Blacklist = new array<string>;
 		Blacklist.Insert("WrittenNote");
 		Blacklist.Insert("VehicleKeyBase");
@@ -67,7 +128,10 @@ class VST_Config
 		Blacklist.Insert("Lard");
 		Blacklist.Insert("Carp");
 		Blacklist.Insert("Mackerel");
-		Blacklist.Insert("tofu_vstorage_barrel");
+		Blacklist.Insert("Barrel_Green");
+		Blacklist.Insert("Barrel_Blue");
+		Blacklist.Insert("Barrel_Red");
+		Blacklist.Insert("Barrel_Yellow");
 		
 		Admins = new array<string>;
 		Admins.Insert("12345678901234567");
@@ -98,6 +162,106 @@ class VST_Config
 	int Get_auto_close_random_seconds_max()
 	{
 		return auto_close_random_seconds_max;
+	}
+	
+	string Get_claim_message_title()
+	{
+		return claim_message_title;
+	}
+	string Get_claim_message_body()
+	{
+		return claim_message_body;
+	}
+	string Get_claim_message_icon()
+	{
+		return claim_message_icon;
+	}
+	float Get_claim_message_show_time_secs()
+	{
+		return claim_message_show_time_secs;
+	}
+	
+	string Get_unclaim_message_title()
+	{
+		return unclaim_message_title;
+	}
+	string Get_unclaim_message_body()
+	{
+		return unclaim_message_body;
+	}
+	string Get_unclaim_message_icon()
+	{
+		return unclaim_message_icon;
+	}
+	float Get_unclaim_message_show_time_secs()
+	{
+		return unclaim_message_show_time_secs;
+	}
+	
+	string Get_locked_message_title()
+	{
+		return locked_message_title;
+	}
+	string Get_locked_message_body()
+	{
+		return locked_message_body;
+	}
+	string Get_locked_message_icon()
+	{
+		return locked_message_icon;
+	}
+	float Get_locked_message_show_time_secs()
+	{
+		return locked_message_show_time_secs;
+	}
+	
+	string Get_cooldown_message_title()
+	{
+		return cooldown_message_title;
+	}
+	string Get_cooldown_message_body()
+	{
+		return cooldown_message_body;
+	}
+	string Get_cooldown_message_icon()
+	{
+		return cooldown_message_icon;
+	}
+	float Get_cooldown_message_show_time_secs()
+	{
+		return cooldown_message_show_time_secs;
+	}
+	
+	string Get_blacklist_message_title()
+	{
+		return blacklist_message_title;
+	}
+	string Get_blacklist_message_body()
+	{
+		return blacklist_message_body;
+	}
+	string Get_blacklist_messsage_icon()
+	{
+		return blacklist_message_icon;
+	}
+	float Get_blacklist_message_show_time_secs()
+	{
+		return blacklist_message_show_time_secs;
+	}
+	
+	int Get_notification_cooldown_secs()
+	{
+		return notification_cooldown_secs;
+	}
+	
+	int Get_action_cooldown_secs()
+	{
+		return action_cooldown_secs;
+	}
+	
+	bool Get_block_paper_with_writing()
+	{
+		return block_paper_with_writing;
 	}
 
 	

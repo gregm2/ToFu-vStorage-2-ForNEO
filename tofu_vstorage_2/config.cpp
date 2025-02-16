@@ -18,8 +18,8 @@ class CfgMods
 		action = "";
 		hideName = 0;
 		hidePicture = 0;
-		name = "ToFuVirtualStorage2";
-		credits = "Funatic / inkihh";
+		name = "ToFuVirtualStorage2_ServerSideForNEO";
+		credits = "Funatic / inkihh / gregm2 (NEO changes)";
 		author = "";
 		authorID = "0";
 		version = "2.0";

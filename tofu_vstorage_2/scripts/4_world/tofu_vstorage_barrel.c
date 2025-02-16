@@ -13,6 +13,9 @@ modded class Barrel_ColorBase
 	protected int m_auto_close_random_seconds_max;
 
 	//protected ref array<string> m_BlackListItems;
+	
+	protected float m_vst_neo_last_notify_time; // use GetGame().GetTickTime() (value is seconds)
+	protected float m_vst_neo_last_action_time; // use GetGame().GetTickTime() (value is seconds)
 
 
 	void Barrel_ColorBase()
@@ -28,6 +31,9 @@ modded class Barrel_ColorBase
 		m_auto_close_random_seconds_min = g_Game.GetVSTConfig().Get_auto_close_random_seconds_min();
 		m_auto_close_random_seconds_max = g_Game.GetVSTConfig().Get_auto_close_random_seconds_max();
 
+		m_vst_neo_last_notify_time = 0.0;
+		m_vst_neo_last_action_time = 0.0;
+		
 		if(GetGame().IsDedicatedServer())
 		{
 			if(g_Game.GetVSTConfig().Get_script_logging() == 1)
@@ -38,24 +44,6 @@ modded class Barrel_ColorBase
 			
 	}
 	
-
-// TODO MOVE THIS TO CLOSE ACTION
-//	override void OnPlacementComplete( Man player, vector position = "0 0 0", vector orientation = "0 0 0" )
-//	{
-//		super.OnPlacementComplete( player, position, orientation );
-//		if(GetGame().IsServer())
-//		{
-//			string steamid = player.GetIdentity().GetPlainId();
-//			if(g_Game.GetVSTConfig().Get_script_logging() == 1)
-//				Print("[vStorage] player "+steamid+ "placed barrel "+GetType()+" at pos "+GetPosition());
-//			
-//			//string steamid_part1 = "999999";
-//			string steamid_part1 = steamid.Substring(0,6);
-//			string steamid_part2 = steamid.Substring(6,6);
-//			string steamid_part3 = steamid.Substring(12,5);
-//			saveSteamid(steamid_part1,steamid_part2,steamid_part3);
-//		}
-//	}
 	
 	
 	void saveSteamid(string a, string b, string c) {
@@ -82,6 +70,219 @@ modded class Barrel_ColorBase
 		//Print("[vStorage] m_vst_steamid3 "+m_vst_steamid3);
 				
 		m_vst_wasplaced = true;
+	}
+	
+	void vst_neo_closed_by(PlayerIdentity identity)
+	{
+		if (!identity)
+		{
+			return; 
+		}
+		
+		if(GetGame().IsServer())
+		{
+			GameInventory gi = GetInventory();
+			CargoBase cg;
+			if (gi)
+			{
+				cg = gi.GetCargo();
+			}
+			
+			int item_count = -1;
+			if(cg)
+			{
+				item_count = cg.GetItemCount();
+			}
+			
+			if (item_count > 0)
+			{
+				// if the barrel was not empty and was unclaimed, claim it
+				if (!m_vst_wasplaced)
+				{
+					string steamid = identity.GetPlainId();
+					if(g_Game.GetVSTConfig().Get_script_logging() == 1)
+					{
+						Print("[vStorage] player "+steamid+ "claimed barrel "+GetType()+" at pos "+GetPosition());
+					}
+					//string steamid_part1 = "999999";
+					string steamid_part1 = steamid.Substring(0,6);
+					string steamid_part2 = steamid.Substring(6,6);
+					string steamid_part3 = steamid.Substring(12,5);
+					saveSteamid(steamid_part1,steamid_part2,steamid_part3);
+					vst_neo_send_claim_notification(identity);
+				}
+			}
+			if (item_count == 0)
+			{
+				if (m_vst_wasplaced)
+				{
+					Unclaim();
+					vst_neo_send_unclaim_notification(identity);
+				}
+			}
+		}
+	}
+	
+	bool vst_neo_action_cooldown_expired()
+	{
+		int cooldown = g_Game.GetVSTConfig().Get_action_cooldown_secs();
+		if (cooldown == 0)
+		{
+			return true;
+		}
+		float currentTick = GetGame().GetTickTime();
+		float checkTime = m_vst_neo_last_action_time + cooldown;
+		
+		if (checkTime < currentTick)
+		{
+			m_vst_neo_last_action_time = currentTick;
+			return true;
+		}
+		return false;
+	}
+	
+	bool vst_neo_notify_cooldown_expired()
+	{
+		int cooldown = g_Game.GetVSTConfig().Get_notification_cooldown_secs();
+		if (cooldown == 0)
+		{
+			return true;
+		}
+		float currentTick = GetGame().GetTickTime();
+		float checkTime = m_vst_neo_last_notify_time + cooldown;
+		
+		if (checkTime < currentTick)
+		{
+			m_vst_neo_last_notify_time = currentTick;
+			return true;
+		}
+		return false;
+	}
+	
+	bool vst_neo_check_cooldown_and_notify(PlayerIdentity identity)
+	{
+		if (vst_neo_action_cooldown_expired())
+			return true;
+		
+		if (!vst_neo_notify_cooldown_expired())
+		{
+			return; /* don't flood messages */
+		}
+		
+		if (!identity)
+		{
+			return; /* can't pass NULL here */
+		}
+		
+		string title = g_Game.GetVSTConfig().Get_cooldown_message_title();
+		string body = g_Game.GetVSTConfig().Get_cooldown_message_body();
+		string icon = g_Game.GetVSTConfig().Get_cooldown_message_icon();
+		float show_time = g_Game.GetVSTConfig().Get_cooldown_message_show_time_secs();
+		
+		NotificationSystem.SendNotificationToPlayerIdentityExtended(identity, show_time, title, body, icon);
+	}
+	
+	void vst_neo_send_locked_notification(PlayerIdentity identity)
+	{
+		if (!vst_neo_notify_cooldown_expired())
+		{
+			return; /* don't flood messages */
+		}
+		
+		if (!identity)
+		{
+			return; /* can't pass NULL here */
+		}
+		
+		string title = g_Game.GetVSTConfig().Get_locked_message_title();
+		string body = g_Game.GetVSTConfig().Get_locked_message_body();
+		string icon = g_Game.GetVSTConfig().Get_locked_message_icon();
+		float show_time = g_Game.GetVSTConfig().Get_locked_message_show_time_secs();
+		
+		NotificationSystem.SendNotificationToPlayerIdentityExtended(identity, show_time, title, body, icon);
+	}
+	
+	void vst_neo_send_blacklist_notification(EntityAI item)
+	{
+		if (!vst_neo_notify_cooldown_expired())
+		{
+			return; /* don't flood messages */
+		}
+		
+		if (!item)
+		{
+			return; /* can't pass NULL here */
+		}
+		
+		string title = g_Game.GetVSTConfig().Get_blacklist_message_title();
+		string body = g_Game.GetVSTConfig().Get_blacklist_message_body();
+		body = body + " Failed type: " + item.GetType();
+		string icon = g_Game.GetVSTConfig().Get_blacklist_message_icon();
+		float show_time = g_Game.GetVSTConfig().Get_blacklist_message_show_time_secs();
+		
+		autoptr array<Man> players = new array<Man>();
+		GetGame().GetPlayers(players);
+			
+		foreach (Man man : players)
+		{
+			PlayerBase player;
+			if (Class.CastTo(player, man))
+			{
+				PlayerIdentity pi;
+				if (player)
+				{
+					// message all players in 3 meters
+					if (vector.DistanceSq(GetPosition(), player.GetPosition()) < 9.0)
+					{
+						pi = player.GetIdentity();
+						if (pi)
+						{
+							NotificationSystem.SendNotificationToPlayerIdentityExtended(pi, show_time, title, body, icon);
+						}
+					}
+				}
+			}
+		}
+	}
+	
+	void vst_neo_send_claim_notification(PlayerIdentity identity)
+	{
+		if (!vst_neo_notify_cooldown_expired())
+		{
+			return; /* don't flood messages */
+		}
+		
+		if (!identity)
+		{
+			return; /* can't pass NULL here */
+		}
+		
+		string title = g_Game.GetVSTConfig().Get_claim_message_title();
+		string body = g_Game.GetVSTConfig().Get_claim_message_body();
+		string icon = g_Game.GetVSTConfig().Get_claim_message_icon();
+		float show_time = g_Game.GetVSTConfig().Get_claim_message_show_time_secs();
+		
+		NotificationSystem.SendNotificationToPlayerIdentityExtended(identity, show_time, title, body, icon);
+	}
+	
+	void vst_neo_send_unclaim_notification(PlayerIdentity identity)
+	{
+		if (!vst_neo_notify_cooldown_expired())
+		{
+			return; /* don't flood messages */
+		}
+		
+		if (!identity)
+		{
+			return; /* can't pass NULL here */
+		}
+		
+		string title = g_Game.GetVSTConfig().Get_unclaim_message_title();
+		string body = g_Game.GetVSTConfig().Get_unclaim_message_body();
+		string icon = g_Game.GetVSTConfig().Get_unclaim_message_icon();
+		float show_time = g_Game.GetVSTConfig().Get_unclaim_message_show_time_secs();
+		
+		NotificationSystem.SendNotificationToPlayerIdentityExtended(identity, show_time, title, body, icon);
 	}
 	
 	bool canInteract(string steamid)
@@ -194,32 +395,55 @@ modded class Barrel_ColorBase
 	{
 		if(!IsOpen()) return;
 
-		array<Object> items_in_vicinity = new array<Object>;
-        
-        GetGame().GetObjectsAtPosition(GetPosition(), 10.0, items_in_vicinity, NULL);
-
+		// do not auto close an empty barrel that may be a rain barrel
+		GameInventory gi = GetInventory();
+		CargoBase cg;
+		if (gi)
+		{
+			cg = gi.GetCargo();
+		}
+		
+		int item_count = -1;
+		if(cg)
+		{
+			item_count = cg.GetItemCount();
+		}
+		if (item_count == 0)
+		{
+			return;
+		}
+			
 		bool PlayerIsAround = false;
 
-// CEApi GetCEApi();
-// 	\brief Check if there is a player within a radius
-//		\param vPos \p vector The center point
-//		\param fDistance \p float The radius around the center point
-//		\return \p bool Returns false when there is a player inside supplied area, true when it successfully avoided players
-//	@code
-//		GetCEApi().AvoidPlayer(Vector(500, 0, 500), 20);
-//	@endcode
-//	*/
-//	proto native bool AvoidPlayer(vector vPos, float fDistance); // return false when there is a player
-//	/**
-		for (int i = 0; i < items_in_vicinity.Count(); i++)
+		CEApi ce = GetCEApi();
+		if(ce)
 		{
-			EntityAI item_in_vicinity = EntityAI.Cast(items_in_vicinity.Get(i));
-			if (item_in_vicinity && item_in_vicinity.IsKindOf("SurvivorBase"))
+			// enfusion modders discord swears this is faster than getting all objects 
+			if (ce.AvoidPlayer(GetPosition(), 10.0))
+			{
+				PlayerIsAround = false;
+			}
+			else 
 			{
 				PlayerIsAround = true;
-				break;
 			}
-		};
+		}
+		else
+		{
+			// if we can't get a CE interface, use the original method
+			array<Object> items_in_vicinity = new array<Object>;
+			GetGame().GetObjectsAtPosition(GetPosition(), 10.0, items_in_vicinity, NULL);
+			
+			for (int i = 0; i < items_in_vicinity.Count(); i++)
+			{
+				EntityAI item_in_vicinity = EntityAI.Cast(items_in_vicinity.Get(i));
+				if (item_in_vicinity && item_in_vicinity.IsKindOf("SurvivorBase"))
+				{
+					PlayerIsAround = true;
+					break;
+				}
+			}
+		}
 
 		if(!PlayerIsAround)
 		{
@@ -268,7 +492,7 @@ modded class Barrel_ColorBase
 		FileSerializer file = new FileSerializer();
 		if (file.Open("$profile:ToFuVStorage/" + filename, FileMode.WRITE))
 		{
-			file.Write(containerObjMeta)
+			file.Write(containerObjMeta);
 			file.Close();
 			//Print("Metadata Serialized and saved");
 		}
@@ -315,7 +539,7 @@ modded class Barrel_ColorBase
 		FileSerializer file = new FileSerializer();
 		if (file.Open("$profile:ToFuVStorage/" + filename, FileMode.READ))
 		{
-			file.Read(containerObjMeta)
+			file.Read(containerObjMeta);
 			file.Close();
 			//Print("Metadata Serialized and saved");
 		}
@@ -345,20 +569,6 @@ modded class Barrel_ColorBase
 		return true;
 	}
 	
-	override void SetActions()
-	{
-		super.SetActions();
-
-		AddAction(ActionOpenVStorage);
-		AddAction(ActionCloseVStorage);
-		RemoveAction(ActionOpenBarrel);
-		RemoveAction(ActionCloseBarrel);
-		RemoveAction(ActionTakeItem);
-		RemoveAction(ActionTakeItemToHands);
-		AddAction(ActionTakeItem);
-		AddAction(ActionTakeItemToHands);
-		AddAction(ActionUnclaimVStorage);
-	}
 	
 	bool vst_IsOnBlacklist(EntityAI item)
 	{
@@ -384,6 +594,24 @@ modded class Barrel_ColorBase
 			}
 			
 		}
+		if (g_Game.GetVSTConfig().Get_block_paper_with_writing())
+		{
+			if(item.IsKindOf("Paper"))
+			{
+				Paper paper = Paper.Cast(item);
+				if (paper)
+				{
+					WrittenNoteData wnd = paper.GetWrittenNoteData();
+					if(wnd)
+					{
+						if (wnd.GetNoteText != "")
+						{
+							return true;
+						}
+					}
+				}
+			}
+		}
 
 		array<EntityAI> items_in_storage = new array<EntityAI>;
 		EntityAI item_in_storage;
@@ -404,143 +632,98 @@ modded class Barrel_ColorBase
 		return false;
 	}
 
-	override bool CanReceiveItemIntoCargo (EntityAI item)
-    {
-		return !vst_IsOnBlacklist(item);
-    }
-	
-	override bool CanPutInCargo( EntityAI parent )
+//	override bool CanReceiveItemIntoCargo (EntityAI item)
+//    {
+//		return !vst_IsOnBlacklist(item);
+///    }
+    void vst_neo_throwout_blacklist_item(EntityAI item)
 	{
-		string steamid;
-		
-		if(IsOpen() || m_vst_hasitems)
-			return false;
-		
-		
-		if(GetType().Contains("_1000"))
+		if(!item)
 		{
-			if(GetGame().IsServer())
-			{
-				steamid = PlayerBase.Cast(parent).GetIdentity().GetPlainId();
-			}
-			else
-			{
-				if (GetGame().GetUserManager() && GetGame().GetUserManager().GetTitleInitiator()){
-					steamid = GetGame().GetUserManager().GetTitleInitiator().GetUid();
-				}
-			}
-			
-			return canInteractAdmin(steamid);
+			return;
 		}
+		vector pos = GetPosition();
+		pos[1] = pos[1] + 0.5;
+		float dir = {0.0, 0.0, 0.0, 0.0};
 		
-		if(GetType() == "tofu_vstorage_q_barrel_express")
-		{
-		
-			
-			if(GetGame().IsServer())
-			{
-				steamid = PlayerBase.Cast(parent).GetIdentity().GetPlainId();
-			}
-			else
-			{
-				if (GetGame().GetUserManager() && GetGame().GetUserManager().GetTitleInitiator()){
-					steamid = GetGame().GetUserManager().GetTitleInitiator().GetUid();
-				}
-			}
-			
-			if(!canInteract(steamid) || m_vst_hasitems || IsOpen())
-			{
-				return false;
-			}
-		}
-		
-		if ( !m_vst_hasitems )
-			return true;
-		
-		if ( !super.CanPutInCargo( parent ))
-			return false;
-				
-		return false;
+		// should drop in mid-air
+		vst_neo_send_blacklist_notification(item);
+		MiscGameplayFunctions.ThrowEntityFromInventory(item, pos, dir, "0 0 0", ThrowEntityFlags.NONE);
 	}
 	
-	override bool CanPutIntoHands( EntityAI parent )
+	override void EECargoIn(EntityAI item)
 	{
-		
-		string steamid;
-		
-		if(IsOpen()) 
-			return false;
-		
-		if(GetType().Contains("_1000"))
+		super.EECargoIn(item);
+		if (!vst_IsOnBlacklist(item))
 		{
-			if(GetGame().IsServer())
-			{
-				steamid = PlayerBase.Cast(parent).GetIdentity().GetPlainId();
-			}
-			else
-			{
-				if (GetGame().GetUserManager() && GetGame().GetUserManager().GetTitleInitiator()){
-					steamid = GetGame().GetUserManager().GetTitleInitiator().GetUid();
-				}
-			}
-			
-			return canInteractAdmin(steamid);
+			return;
 		}
-			
 		
-		// If Base nearby and barrel is closed allow take to hands
-		array<Object> items_in_vicinity = new array<Object>;
-        GetGame().GetObjectsAtPosition(GetPosition(), 60.0, items_in_vicinity, NULL);
+		/* give item a tenth of a second to settle other calls in the place cargo change */
+		GetGame().GetCallQueue(CALL_CATEGORY_SYSTEM).CallLater(vst_neo_throwout_blacklist_item, 100, false, item);
 		
-		bool FlagNearby = false;
-
-		for (int i = 0; i < items_in_vicinity.Count(); i++)
+	}
+	
+	override void EEHealthLevelChanged(int oldLevel, int newLevel, string zone)
+	{
+		if (newLevel == GameConstants.STATE_RUINED && !GetHierarchyParent())
+			vopen(null, "");
+		super.EEHealthLevelChanged(oldLevel,newLevel,zone);
+	}
+	
+	override void Delete()
+	{
+		int b1;
+		int b2;
+		int b3;
+		int b4;
+		string filename;
+		GetPersistentID(b1, b2, b3, b4);
+		
+		filename = "$profile:ToFuVStorage/container_"+b1+"_"+b2+"_"+b3+"_"+b4+".save";
+		
+		if (FileExist(filename))
 		{
-			EntityAI item_in_vicinity = EntityAI.Cast(items_in_vicinity.Get(i));
-			if (item_in_vicinity && item_in_vicinity.IsKindOf("TerritoryFlag"))
-			{
-				FlagNearby = true;
-				break;
-			}
-		};
+			DeleteFile(filename);
+		}
 		
-		if(FlagNearby && GetType() != "tofu_vstorage_q_barrel_express")
+		filename = "$profile:ToFuVStorage/container_"+b1+"_"+b2+"_"+b3+"_"+b4+".meta";
+		
+		if (FileExist(filename))
+		{
+			DeleteFile(filename);
+		}
+		
+		super.Delete();
+	}
+	
+	override bool EEOnDamageCalculated(TotalDamageResult damageResult, int damageType, EntityAI source, int component, string dmgZone, string ammo, vector modelPos, float speedCoef)
+	{
+		if (!m_vst_wasplaced)
+		{
 			return true;
-		// --
+		}
 		
-		
-		if(GetType() == "tofu_vstorage_q_barrel_express")
+		PlayerBase playerSource;
+		playerSource = PlayerBase.Cast( source.GetHierarchyParent() );
+		PlayerIdentity pi;
+		if (playerSource)
 		{
-						
-			if(GetGame().IsServer())
+			pi = playerSource.GetIdentity();
+		}
+		if (pi)
+		{
+			string steamid = pi.GetPlainId();
+			if (canInteract(steamid) || canInteractAdmin(steamid))
 			{
-				steamid = PlayerBase.Cast(parent).GetIdentity().GetPlainId();
-			}
-			else
-			{
-				if (GetGame().GetUserManager() && GetGame().GetUserManager().GetTitleInitiator()){
-					steamid = GetGame().GetUserManager().GetTitleInitiator().GetUid();
-				}
-			}
-			
-			if(!canInteract(steamid))
-				return false;
-			
-			if(canInteract(steamid))
 				return true;
-			
+			}
+			vst_neo_send_locked_notification(pi);
 		}
 		
-		if ( !m_vst_hasitems )
-			return true;
-						
-		
-		if ( !super.CanPutIntoHands( parent ))
-			return false;		
-
 		return false;
 	}
-
+	
 	bool vopen(PlayerBase player, string steamid = "")
 	{
 		
@@ -561,6 +744,21 @@ modded class Barrel_ColorBase
 		else
 		{
 			filename = steamid+".save";
+		}
+		
+		// clear 'holding' rag
+		if (!m_vst_hasitems)
+		{
+			array<EntityAI> items_to_store = new array<EntityAI>;
+			GetInventory().EnumerateInventory(InventoryTraversalType.LEVELORDER, items_to_store);
+			int count = items_to_store.Count();
+			for (int j= 0; j < count; j++)
+			{
+				EntityAI item_in_storage_to_delete = items_to_store.Get(j);
+				if (item_in_storage_to_delete) {
+					item_in_storage_to_delete.Delete();
+				}
+			}
 		}
 		
 		FileSerializer openfile = new FileSerializer();
@@ -584,15 +782,7 @@ modded class Barrel_ColorBase
 			}
 			
 		}
-				
-		m_Openable.Open();
-		m_RainProcurement.InitRainProcurement();
-		SoundSynchRemote();
-		SetTakeable(false);
-
-		//SetSynchDirty(); //! called also in SoundSynchRemote - TODO
-
-		UpdateVisualState();
+		
 		
 		if(GetGame().IsDedicatedServer())
 		{
@@ -609,12 +799,10 @@ modded class Barrel_ColorBase
 		
 		if(failedItems) 
 		{
-			SetSynchDirty();
 			return false;
 		}
 		
 		
-		SetSynchDirty();
 		return true;
 		
 	}
@@ -684,19 +872,11 @@ modded class Barrel_ColorBase
 			file.Close();
 			//Print("Content Serialized and saved");
 		}
-
+		if (m_vst_hasitems)
+		{
+			GetInventory().CreateEntityInCargo("Rag");
+		}
 		//Print("[vStorage] vclose() end");
-
-		m_Openable.Close();
-		if (m_RainProcurement.IsRunning())
-			m_RainProcurement.StopRainProcurement();
-		SoundSynchRemote();
-		SetTakeable(true);
-
-		//SetSynchDirty(); //! called also in SoundSynchRemote - TODO
-		
-		SetSynchDirty();
-		UpdateVisualState();
 	}
 
 	tofuvStorageObj vstore(EntityAI item_in_storage)
@@ -944,10 +1124,6 @@ modded class Barrel_ColorBase
 				
 				return false;
 			}
-			
-			
-			
-						
 			
 			
 			if(new_item) {
@@ -1252,6 +1428,4 @@ modded class Barrel_ColorBase
 		return true;
 		
 	}
-	
-
 };
