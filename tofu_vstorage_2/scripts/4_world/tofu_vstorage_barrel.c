@@ -470,9 +470,14 @@ modded class Barrel_ColorBase
 		
 		super.OnStoreSave(ctx);
 		
-		autoptr tofuvStorageContainerMeta containerObjMeta = new tofuvStorageContainerMeta();
-		
+		int b1;
+		int b2;
+		int b3;
+		int b4;
 		string filename;
+		GetPersistentID(b1, b2, b3, b4);
+		
+		autoptr tofuvStorageContainerMeta containerObjMeta = new tofuvStorageContainerMeta();
 		
 		if(this.GetType() != "tofu_vstorage_q_barrel_express")
 		{
@@ -513,12 +518,17 @@ modded class Barrel_ColorBase
 		
 	}
 	
-	override bool OnStoreLoad(ParamsReadContext ctx, int version)
+	// moved OnStoreLoad to AfterStoreLoad as that's when GetPersistentID is valid
+	override void AfterStoreLoad()
 	{   
-		if ( !super.OnStoreLoad(ctx, version) )
-			return false;
+		super.AfterStoreLoad();
 		
+		int b1;
+		int b2;
+		int b3;
+		int b4;
 		string filename;
+		GetPersistentID(b1, b2, b3, b4);
 		
 		if(this.GetType() != "tofu_vstorage_q_barrel_express")
 		{
@@ -532,7 +542,7 @@ modded class Barrel_ColorBase
 		// before the first save, meta file won't exist, especially loading this into a live server
 		if (!FileExist(filename))
 		{
-			return true;
+			return;
 		}
 		
 		autoptr tofuvStorageContainerMeta containerObjMeta = new tofuvStorageContainerMeta();
@@ -566,7 +576,7 @@ modded class Barrel_ColorBase
 		//if (ctx.Read(m_vst_wasplaced)) {  }
 			
 		
-		return true;
+		return;
 	}
 	
 	
