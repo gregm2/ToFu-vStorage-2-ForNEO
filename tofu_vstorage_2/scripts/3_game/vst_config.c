@@ -109,7 +109,7 @@ class VST_Config
 		blacklist_message_show_time_secs = 5.0;
 				
 		notification_cooldown_secs = 10;
-		close_cooldown_secs = 5;
+		action_cooldown_secs = 5;
 		
 		block_paper_with_writing = true;
 		
@@ -162,6 +162,17 @@ class VST_Config
 	int Get_auto_close_random_seconds_max()
 	{
 		return auto_close_random_seconds_max;
+	}
+	
+	// Set methods for test access
+	void Set_auto_close_random_seconds_min(int new_min)
+	{
+		auto_close_random_seconds_min = new_min;
+	}
+
+	void Set_auto_close_random_seconds_max(int new_max)
+	{
+		auto_close_random_seconds_max = new_max;
 	}
 	
 	string Get_claim_message_title()
@@ -240,7 +251,7 @@ class VST_Config
 	{
 		return blacklist_message_body;
 	}
-	string Get_blacklist_messsage_icon()
+	string Get_blacklist_message_icon()
 	{
 		return blacklist_message_icon;
 	}

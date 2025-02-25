@@ -1,3 +1,6 @@
+
+
+
 modded class Barrel_ColorBase
 {
 	
@@ -16,6 +19,8 @@ modded class Barrel_ColorBase
 	
 	protected float m_vst_neo_last_notify_time; // use GetGame().GetTickTime() (value is seconds)
 	protected float m_vst_neo_last_action_time; // use GetGame().GetTickTime() (value is seconds)
+	
+	protected bool m_vst_neo_is_restoring; // flag indicating items being restored from disk
 
 
 	void Barrel_ColorBase()
@@ -34,6 +39,8 @@ modded class Barrel_ColorBase
 		m_vst_neo_last_notify_time = 0.0;
 		m_vst_neo_last_action_time = 0.0;
 		
+		m_vst_neo_is_restoring = false;
+		
 		if(GetGame().IsDedicatedServer())
 		{
 			if(g_Game.GetVSTConfig().Get_script_logging() == 1)
@@ -45,10 +52,39 @@ modded class Barrel_ColorBase
 	}
 	
 	
+	string vst_neo_get_express_filename(string steamid)
+	{
+		// we don't have any express barrels yet, but may add them
+		return "$profile:ToFuVStorage/"+steamid+".save";
+	}
+	
+	string vst_neo_get_save_filename()
+	{
+		int b1;
+		int b2;
+		int b3;
+		int b4;
+		string filename;
+		GetPersistentID(b1, b2, b3, b4);
+		
+		filename = "$profile:ToFuVStorage/container_"+b1+"_"+b2+"_"+b3+"_"+b4+".save";
+		return filename;
+	}
+	
+	string vst_neo_get_meta_filename()
+	{
+		int b1;
+		int b2;
+		int b3;
+		int b4;
+		string filename;
+		GetPersistentID(b1, b2, b3, b4);
+		
+		filename = "$profile:ToFuVStorage/container_"+b1+"_"+b2+"_"+b3+"_"+b4+".meta";
+		return filename;
+	}
 	
 	void saveSteamid(string a, string b, string c) {
-				
-		
 		//Print("[vStorage] a "+a);
 		//Print("[vStorage] b "+b);
 		//Print("[vStorage] c "+c);
@@ -82,17 +118,19 @@ modded class Barrel_ColorBase
 		if(GetGame().IsServer())
 		{
 			GameInventory gi = GetInventory();
-			CargoBase cg;
-			if (gi)
+			CargoBase cb;
+			
+			if(gi)
 			{
-				cg = gi.GetCargo();
+				cb = gi.GetCargo();
 			}
 			
-			int item_count = -1;
-			if(cg)
+			if (!cb)
 			{
-				item_count = cg.GetItemCount();
+				return;
 			}
+			
+			int item_count = cb.GetItemCount();
 			
 			if (item_count > 0)
 			{
@@ -125,6 +163,11 @@ modded class Barrel_ColorBase
 	
 	bool vst_neo_action_cooldown_expired()
 	{
+		if (m_vst_neo_is_restoring)
+		{
+			return false; // block actions while restore is in progress
+		}
+		
 		int cooldown = g_Game.GetVSTConfig().Get_action_cooldown_secs();
 		if (cooldown == 0)
 		{
@@ -166,12 +209,12 @@ modded class Barrel_ColorBase
 		
 		if (!vst_neo_notify_cooldown_expired())
 		{
-			return; /* don't flood messages */
+			return false; /* cooldown has not expired, but don't flood messages */
 		}
 		
 		if (!identity)
 		{
-			return; /* can't pass NULL here */
+			return false; /* can't pass NULL here */
 		}
 		
 		string title = g_Game.GetVSTConfig().Get_cooldown_message_title();
@@ -180,6 +223,7 @@ modded class Barrel_ColorBase
 		float show_time = g_Game.GetVSTConfig().Get_cooldown_message_show_time_secs();
 		
 		NotificationSystem.SendNotificationToPlayerIdentityExtended(identity, show_time, title, body, icon);
+		return false;
 	}
 	
 	void vst_neo_send_locked_notification(PlayerIdentity identity)
@@ -216,7 +260,7 @@ modded class Barrel_ColorBase
 		
 		string title = g_Game.GetVSTConfig().Get_blacklist_message_title();
 		string body = g_Game.GetVSTConfig().Get_blacklist_message_body();
-		body = body + " Failed type: " + item.GetType();
+		body = body + " Failed type: " + item.GetDisplayName();
 		string icon = g_Game.GetVSTConfig().Get_blacklist_message_icon();
 		float show_time = g_Game.GetVSTConfig().Get_blacklist_message_show_time_secs();
 		
@@ -225,21 +269,18 @@ modded class Barrel_ColorBase
 			
 		foreach (Man man : players)
 		{
-			PlayerBase player;
-			if (Class.CastTo(player, man))
+			if (!man)
+			{
+				continue;
+			}
+			// message all players in 2 meters
+			if (vector.DistanceSq(GetPosition(), man.GetPosition()) < 4.0)
 			{
 				PlayerIdentity pi;
-				if (player)
+				pi = man.GetIdentity();
+				if (pi)
 				{
-					// message all players in 3 meters
-					if (vector.DistanceSq(GetPosition(), player.GetPosition()) < 9.0)
-					{
-						pi = player.GetIdentity();
-						if (pi)
-						{
-							NotificationSystem.SendNotificationToPlayerIdentityExtended(pi, show_time, title, body, icon);
-						}
-					}
+					NotificationSystem.SendNotificationToPlayerIdentityExtended(pi, show_time, title, body, icon);
 				}
 			}
 		}
@@ -324,31 +365,6 @@ modded class Barrel_ColorBase
 	
 	bool canInteractAdmin(string steamid)
 	{
-		//Print(steamid);
-		
-		string steamid_part1 = steamid.Substring(0,6);
-		string steamid_part2 = steamid.Substring(6,6);
-		string steamid_part3 = steamid.Substring(12,5);
-		
-		string mod1 = "9"+steamid_part1; 
-		string mod2 = "9"+steamid_part2;
-		string mod3 = "9"+steamid_part3;
-		
-		int steamid1 = mod1.ToInt();
-		int steamid2 = mod2.ToInt();
-		int steamid3 = mod3.ToInt();
-		
-		/*
-		Print(m_vst_wasplaced);
-		Print(m_vst_steamid1);
-		Print(m_vst_steamid2);
-		Print(m_vst_steamid3);
-		Print(steamid1);
-		Print(steamid2);
-		Print(steamid3);
-		*/
-				
-		
 		array<string> Admins_List = g_Game.GetVSTConfig().Get_Admins();
 		
 		for (int i = 0; i < Admins_List.Count(); i++)
@@ -360,7 +376,7 @@ modded class Barrel_ColorBase
 		return false;
 	}
 	
-		
+	
 	void Unclaim() {
 		m_vst_wasplaced = false;
 		m_vst_steamid1 = 0;
@@ -395,23 +411,25 @@ modded class Barrel_ColorBase
 	{
 		if(!IsOpen()) return;
 
-		// do not auto close an empty barrel that may be a rain barrel
-		GameInventory gi = GetInventory();
-		CargoBase cg;
-		if (gi)
-		{
-			cg = gi.GetCargo();
-		}
+		GameInventory gi;
+		CargoBase cb;
 		
-		int item_count = -1;
-		if(cg)
-		{
-			item_count = cg.GetItemCount();
-		}
-		if (item_count == 0)
+		gi = GetInventory();
+		
+		if (!gi)
 		{
 			return;
 		}
+		
+		cb = gi.GetCargo();
+		if (!cb)
+		{
+			return;
+		}
+		
+		// do not auto close an empty barrel that may be a rain barrel
+		if (cb.GetItemCount() == 0)
+			return;
 			
 		bool PlayerIsAround = false;
 
@@ -449,7 +467,7 @@ modded class Barrel_ColorBase
 		{
 			if(g_Game.GetVSTConfig().Get_script_logging() == 1)
 				Print("[vStorage] No player(s) around, autoclosing "+GetType()+" at pos "+GetPosition());
-			
+			Close();
 			vclose();
 		} else
 		{
@@ -470,22 +488,18 @@ modded class Barrel_ColorBase
 		
 		super.OnStoreSave(ctx);
 		
-		int b1;
-		int b2;
-		int b3;
-		int b4;
-		string filename;
-		GetPersistentID(b1, b2, b3, b4);
 		
 		autoptr tofuvStorageContainerMeta containerObjMeta = new tofuvStorageContainerMeta();
+		string filename;
 		
 		if(this.GetType() != "tofu_vstorage_q_barrel_express")
 		{
-			filename = "container_"+b1+"_"+b2+"_"+b3+"_"+b4+".meta";
+			filename = vst_neo_get_meta_filename();
 		}
 		else
 		{
-			filename = steamid+".meta";
+			//filename = steamid+".meta";
+			return;
 		}
 		
 		containerObjMeta.m_vst_hasitems = m_vst_hasitems;
@@ -495,7 +509,7 @@ modded class Barrel_ColorBase
 		containerObjMeta.m_vst_wasplaced = m_vst_wasplaced;
 		
 		FileSerializer file = new FileSerializer();
-		if (file.Open("$profile:ToFuVStorage/" + filename, FileMode.WRITE))
+		if (file.Open(filename, FileMode.WRITE))
 		{
 			file.Write(containerObjMeta);
 			file.Close();
@@ -522,21 +536,16 @@ modded class Barrel_ColorBase
 	override void AfterStoreLoad()
 	{   
 		super.AfterStoreLoad();
-		
-		int b1;
-		int b2;
-		int b3;
-		int b4;
 		string filename;
-		GetPersistentID(b1, b2, b3, b4);
 		
 		if(this.GetType() != "tofu_vstorage_q_barrel_express")
 		{
-			filename = "container_"+b1+"_"+b2+"_"+b3+"_"+b4+".meta";
+			filename = vst_neo_get_meta_filename();
 		}
 		else
 		{
-			filename = steamid+".meta";
+			//filename = steamid+".meta";
+			return;
 		}
 		
 		// before the first save, meta file won't exist, especially loading this into a live server
@@ -547,7 +556,7 @@ modded class Barrel_ColorBase
 		
 		autoptr tofuvStorageContainerMeta containerObjMeta = new tofuvStorageContainerMeta();
 		FileSerializer file = new FileSerializer();
-		if (file.Open("$profile:ToFuVStorage/" + filename, FileMode.READ))
+		if (file.Open(filename, FileMode.READ))
 		{
 			file.Read(containerObjMeta);
 			file.Close();
@@ -589,8 +598,7 @@ modded class Barrel_ColorBase
 			return false;
 		}
 		*/
-			
-
+		
 		int i;
 		string BlackListClass;
 
@@ -614,7 +622,7 @@ modded class Barrel_ColorBase
 					WrittenNoteData wnd = paper.GetWrittenNoteData();
 					if(wnd)
 					{
-						if (wnd.GetNoteText != "")
+						if (wnd.GetNoteText() != "")
 						{
 							return true;
 						}
@@ -654,7 +662,7 @@ modded class Barrel_ColorBase
 		}
 		vector pos = GetPosition();
 		pos[1] = pos[1] + 0.5;
-		float dir = {0.0, 0.0, 0.0, 0.0};
+		float dir[4] = {0.0, 0.0, 0.0, 0.0};
 		
 		// should drop in mid-air
 		vst_neo_send_blacklist_notification(item);
@@ -664,6 +672,13 @@ modded class Barrel_ColorBase
 	override void EECargoIn(EntityAI item)
 	{
 		super.EECargoIn(item);
+		
+		// do not reject items being restored
+		if (m_vst_neo_is_restoring)
+		{
+			return;
+		}
+		
 		if (!vst_IsOnBlacklist(item))
 		{
 			return;
@@ -683,27 +698,19 @@ modded class Barrel_ColorBase
 	
 	override void Delete()
 	{
-		int b1;
-		int b2;
-		int b3;
-		int b4;
-		string filename;
-		GetPersistentID(b1, b2, b3, b4);
-		
-		filename = "$profile:ToFuVStorage/container_"+b1+"_"+b2+"_"+b3+"_"+b4+".save";
+		string filename = vst_neo_get_save_filename();
 		
 		if (FileExist(filename))
 		{
 			DeleteFile(filename);
 		}
 		
-		filename = "$profile:ToFuVStorage/container_"+b1+"_"+b2+"_"+b3+"_"+b4+".meta";
+		filename = vst_neo_get_meta_filename();
 		
 		if (FileExist(filename))
 		{
 			DeleteFile(filename);
 		}
-		
 		super.Delete();
 	}
 	
@@ -737,29 +744,30 @@ modded class Barrel_ColorBase
 	bool vopen(PlayerBase player, string steamid = "")
 	{
 		
+		m_vst_neo_is_restoring = true;
 		
 		bool failedItems = false;
 		
-		int b1;
-		int b2;
-		int b3;
-		int b4;
 		string filename;
-		GetPersistentID(b1, b2, b3, b4);
 		
 		if(this.GetType() != "tofu_vstorage_q_barrel_express")
 		{
-			filename = "container_"+b1+"_"+b2+"_"+b3+"_"+b4+".save";
+			filename = vst_neo_get_save_filename();
 		}
 		else
 		{
 			filename = steamid+".save";
 		}
 		
-		// clear 'holding' rag
+		if (!FileExist(filename))
+		{
+			return true; // no saved data to restore (avoids clearing contents)
+		}
+		
+		// clear 'holding' rag if it is supposed to be empty
 		if (!m_vst_hasitems)
 		{
-			array<EntityAI> items_to_store = new array<EntityAI>;
+			autoptr array<EntityAI> items_to_store = new array<EntityAI>;
 			GetInventory().EnumerateInventory(InventoryTraversalType.LEVELORDER, items_to_store);
 			int count = items_to_store.Count();
 			for (int j= 0; j < count; j++)
@@ -772,9 +780,9 @@ modded class Barrel_ColorBase
 		}
 		
 		FileSerializer openfile = new FileSerializer();
-		tofuvStorageContainer loadedContainerObj = new tofuvStorageContainer() ;
+		autoptr tofuvStorageContainer loadedContainerObj = new tofuvStorageContainer() ;
 		
-		if (openfile.Open("$profile:ToFuVStorage/" + filename, FileMode.READ)) {
+		if (openfile.Open(filename, FileMode.READ)) {
 			if(openfile.Read(loadedContainerObj)) {
 				foreach(tofuvStorageObj item : loadedContainerObj.storedItems) {
 					if(!vrestore(item, this, player))
@@ -785,8 +793,8 @@ modded class Barrel_ColorBase
 			
 			if(this.GetType() == "tofu_vstorage_q_barrel_express" || this.GetType() == "tofu_vstorage_q_barrel_travel")
 			{
-				if (FileExist("$profile:ToFuVStorage/"+filename)) {
-					DeleteFile("$profile:ToFuVStorage/"+filename);
+				if (FileExist(filename)) {
+					DeleteFile(filename);
 					//Print("[vStorage] DELETED FILE "+filename_q);
 				}
 			}
@@ -807,6 +815,8 @@ modded class Barrel_ColorBase
 			//SoundSynchRemoteReset();
 		}
 		
+		m_vst_neo_is_restoring = false;
+		
 		if(failedItems) 
 		{
 			return false;
@@ -819,9 +829,11 @@ modded class Barrel_ColorBase
 
 	void vclose(string steamid = "")
 	{
-		//Print("[vStorage] vclose() called, IsOpen() for " + GetType() + ": " + IsOpen());
-		if(!IsOpen()) return;
-
+		if(m_vst_neo_is_restoring)
+		{
+			return;
+		}
+		
 		autoptr tofuvStorageContainer containerObj = new tofuvStorageContainer();
 		
 		int b1;
@@ -834,21 +846,23 @@ modded class Barrel_ColorBase
 		
 		if(this.GetType() != "tofu_vstorage_q_barrel_express")
 		{
-			filename = persistentIdToSave + ".save";
+			filename = vst_neo_get_save_filename();
 		}
 		else
 		{
-			filename = steamid+".save";
+			//filename = vst_neo_get_express_filename();
+			return;
 		}
 		
 		
 		containerObj.persistentId = persistentIdToSave;
 		containerObj.storedItems = new ref array<ref tofuvStorageObj>;
 		
-		array<EntityAI> items = new array<EntityAI>;
+		autoptr array<EntityAI> items = new array<EntityAI>;
 		GetInventory().EnumerateInventory(InventoryTraversalType.LEVELORDER, items);
 
 		int count = items.Count();
+		int original_count = count;
 		for (int i = 0; i < count; i++)
 		{
 			EntityAI item_in_storage = items.Get(i);
@@ -856,7 +870,7 @@ modded class Barrel_ColorBase
 				containerObj.storedItems.Insert(vstore(item_in_storage));
 		}
 		
-		if(count==1)
+		if(original_count == 0)
 			setItems(false);
 		else 
 			setItems(true);
@@ -864,11 +878,11 @@ modded class Barrel_ColorBase
 		//Print("[vStorage] vclose() ");
 		
 		FileSerializer file = new FileSerializer();
-		if (file.Open("$profile:ToFuVStorage/" + filename, FileMode.WRITE))
+		if (file.Open(filename, FileMode.WRITE))
 		{
 			if(file.Write(containerObj))
 			{
-				array<EntityAI> items_to_store = new array<EntityAI>;
+				autoptr array<EntityAI> items_to_store = new array<EntityAI>;
 				GetInventory().EnumerateInventory(InventoryTraversalType.LEVELORDER, items_to_store);
 				count = items_to_store.Count();
 				for (int j= 0; j < count; j++)
@@ -1429,7 +1443,7 @@ modded class Barrel_ColorBase
 				itemFailed = true;
 				
 				if(player && player.GetIdentity())
-					g_Game.SendMessage(false,player.GetIdentity(),"WARNING", item.itemName+ " MIGHT NOT BE CREATED!",5,2,false,false,"",0,0);
+				 	NotificationSystem.SendNotificationToPlayerIdentityExtended(player.GetIdentity(), 1.0, "WARNING", "WARNING "+ item.itemName+ " MIGHT NOT BE CREATED!", "set:dayz_inventory image:barrel");
 				
 				return false;
 			}
@@ -1439,3 +1453,16 @@ modded class Barrel_ColorBase
 		
 	}
 };
+
+// make display name for written note clear why it can't go into storage
+modded class Paper
+{
+	override string GetDisplayName()
+	{
+		if(m_NoteContents.GetNoteText() != "")
+		{
+			return "WrittenNote";
+		}
+		return super.GetDisplayName();
+	}
+}
