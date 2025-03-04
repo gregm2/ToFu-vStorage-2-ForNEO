@@ -46,9 +46,16 @@ modded class Barrel_ColorBase
 			if(g_Game.GetVSTConfig().Get_script_logging() == 1)
 				Print("[vStorage] scheduling open/close check in 60 sec.");
 				
-			GetGame().GetCallQueue(CALL_CATEGORY_SYSTEM).CallLater(vst_timer_start, 60000, false, false);
+			//GetGame().GetCallQueue(CALL_CATEGORY_SYSTEM).CallLater(vst_timer_start, 60000, false, false);
 		}
 			
+	}
+	
+	void ~Barrel_ColorBase()
+	{
+		//GetGame().GetCallQueue(CALL_CATEGORY_SYSTEM).Remove(vst_timer_start);
+		//GetGame().GetCallQueue(CALL_CATEGORY_SYSTEM).Remove(vst_timer_end);
+		//GetGame().GetCallQueue(CALL_CATEGORY_SYSTEM).Remove(vst_neo_throwout_blacklist_item);
 	}
 	
 	
@@ -400,7 +407,7 @@ modded class Barrel_ColorBase
 			{
 				autoclose_timer = Math.RandomInt(m_auto_close_random_seconds_min, m_auto_close_random_seconds_max)*1000;
 			}
-			GetGame().GetCallQueue(CALL_CATEGORY_SYSTEM).CallLater(vst_timer_end, autoclose_timer, false);
+			//GetGame().GetCallQueue(CALL_CATEGORY_SYSTEM).CallLater(vst_timer_end, autoclose_timer, false);
 			if(g_Game.GetVSTConfig().Get_script_logging() == 1)
 				Print("[vStorage] Starting " + autoclose_timer +" ms autoclose timer for " + GetType() + " at Position " +GetPosition() );
 		}
@@ -467,8 +474,8 @@ modded class Barrel_ColorBase
 		{
 			if(g_Game.GetVSTConfig().Get_script_logging() == 1)
 				Print("[vStorage] No player(s) around, autoclosing "+GetType()+" at pos "+GetPosition());
-			Close();
 			vclose();
+			Close();
 		} else
 		{
 			if(g_Game.GetVSTConfig().Get_script_logging() == 1)
@@ -568,7 +575,10 @@ modded class Barrel_ColorBase
 		m_vst_steamid2 = containerObjMeta.m_vst_steamid2;
 		m_vst_steamid3 = containerObjMeta.m_vst_steamid3;
 		m_vst_wasplaced = containerObjMeta.m_vst_wasplaced;
-
+		if (m_vst_hasitems)
+		{
+			SetTakeable(false);
+		}
 		/*
 		if (ctx.Read(m_vst_hasitems)) { Print("[vStorage] reading m_vst_hasitems "+m_vst_hasitems); }
 		if (ctx.Read(m_vst_steamid1)) { Print("[vStorage] reading m_vst_steamid1 "+m_vst_steamid1); }
@@ -660,13 +670,33 @@ modded class Barrel_ColorBase
 		{
 			return;
 		}
-		vector pos = GetPosition();
-		pos[1] = pos[1] + 0.5;
-		float dir[4] = {0.0, 0.0, 0.0, 0.0};
 		
-		// should drop in mid-air
+		//derived from MiscGameplayFunctions.DropAllItemsInInventoryInBounds
+		ItemBase ib = ItemBase.Cast(this);
+		vector halfExtents = m_HalfExtents;
+		autoptr array<EntityAI> items = new array<EntityAI>;
+		ib.GetInventory().EnumerateInventory(InventoryTraversalType.LEVELORDER, items);
+		
+		vector direction = ib.GetDirection();
+		float dot = vector.Dot(direction, vector.Forward);
+		
+		float angle = Math.Acos(dot);	
+		if (direction[0] < 0)
+			angle = -angle;	
+
+		float cos = Math.Cos(angle);
+		float sin = Math.Sin(angle);
+		
+		EntityAI itemtothrow;
+		int count = items.Count();
+		for ( int i = 0; i < count; ++i )
+		{
+			itemtothrow = items.Get(i);
+			if ((item) && (item == itemtothrow)
+				ib.GetInventory().DropEntityInBounds(InventoryMode.SERVER, ib, itemtothrow, halfExtents, angle, cos, sin);
+		}
+		
 		vst_neo_send_blacklist_notification(item);
-		MiscGameplayFunctions.ThrowEntityFromInventory(item, pos, dir, "0 0 0", ThrowEntityFlags.NONE);
 	}
 	
 	override void EECargoIn(EntityAI item)
@@ -685,14 +715,16 @@ modded class Barrel_ColorBase
 		}
 		
 		/* give item a tenth of a second to settle other calls in the place cargo change */
-		GetGame().GetCallQueue(CALL_CATEGORY_SYSTEM).CallLater(vst_neo_throwout_blacklist_item, 100, false, item);
+		GetGame().GetCallQueue(CALL_CATEGORY_SYSTEM).CallLater(vst_neo_throwout_blacklist_item, 10, false, item);
 		
 	}
 	
 	override void EEHealthLevelChanged(int oldLevel, int newLevel, string zone)
 	{
-		if (newLevel == GameConstants.STATE_RUINED && !GetHierarchyParent())
+		if (newLevel == GameConstants.STATE_RUINED && !GetHierarchyParent() && !IsOpen())
+		{
 			vopen(null, "");
+		}
 		super.EEHealthLevelChanged(oldLevel,newLevel,zone);
 	}
 	
@@ -740,6 +772,26 @@ modded class Barrel_ColorBase
 		
 		return false;
 	}
+
+	override void SetTakeable(bool pState)
+	{
+		if (m_vst_hasitems)
+		{
+			super.SetTakeable(false); // This syncs to client so should block moving barrels that aren't really "empty"
+			return;
+		}
+		super.SetTakeable(pState);
+	}
+		
+	override bool IsEmpty()
+	{
+		// block poking holes in a barrel that's not "actually" empty in the call to the pokeholesbarrel recipe's CanDo() function
+		if (m_vst_hasitems)
+		{
+			return false;
+		}
+		return super.IsEmpty();
+	}
 	
 	bool vopen(PlayerBase player, string steamid = "")
 	{
@@ -761,23 +813,29 @@ modded class Barrel_ColorBase
 		
 		if (!FileExist(filename))
 		{
+			m_vst_neo_is_restoring = false;
 			return true; // no saved data to restore (avoids clearing contents)
 		}
-		
-		// clear 'holding' rag if it is supposed to be empty
-		if (!m_vst_hasitems)
-		{
-			autoptr array<EntityAI> items_to_store = new array<EntityAI>;
-			GetInventory().EnumerateInventory(InventoryTraversalType.LEVELORDER, items_to_store);
-			int count = items_to_store.Count();
-			for (int j= 0; j < count; j++)
-			{
-				EntityAI item_in_storage_to_delete = items_to_store.Get(j);
-				if (item_in_storage_to_delete) {
-					item_in_storage_to_delete.Delete();
-				}
-			}
-		}
+		if(g_Game.GetVSTConfig().Get_script_logging() == 1)
+			Print("hasitems on restore: " + m_vst_hasitems);
+		// clear 'holding' rag if it is supposed to be empty (this is commented out now, override IsEmpty to catch this in recipe check and SetTakeable which is synced to client
+		//if (!m_vst_hasitems)
+		//{
+			//autoptr array<EntityAI> items_to_store = new array<EntityAI>;
+			//GetInventory().EnumerateInventory(InventoryTraversalType.LEVELORDER, items_to_store);
+			//int count = items_to_store.Count();
+			//if(g_Game.GetVSTConfig().Get_script_logging() == 1)
+				//Print("restoring, found " + count + "items in restore step of empty storage");
+			//for (int j= 0; j < count; j++)
+			//{
+				//EntityAI item_in_storage_to_delete = items_to_store.Get(j);
+				//if (item_in_storage_to_delete) {
+					//if(g_Game.GetVSTConfig().Get_script_logging() == 1)
+						//Print("deleting " + item_in_storage_to_delete.GetDisplayName());
+					//item_in_storage_to_delete.Delete();
+				//}
+			//}
+		//}
 		
 		FileSerializer openfile = new FileSerializer();
 		autoptr tofuvStorageContainer loadedContainerObj = new tofuvStorageContainer() ;
@@ -813,6 +871,15 @@ modded class Barrel_ColorBase
 			}
 			
 			//SoundSynchRemoteReset();
+		}
+		
+		// if someone destroys a closed barrel, don't give them their stuff twice if they open it
+		// also may lead to duplication on a server crash
+		filename = vst_neo_get_save_filename();
+		
+		if (FileExist(filename))
+		{
+			DeleteFile(filename);
 		}
 		
 		m_vst_neo_is_restoring = false;
@@ -867,10 +934,15 @@ modded class Barrel_ColorBase
 		{
 			EntityAI item_in_storage = items.Get(i);
 			if (item_in_storage)
+			{
+				if(g_Game.GetVSTConfig().Get_script_logging() == 1)
+				Print("[vStorage] closing found item: " + item_in_storage.GetDisplayName());
 				containerObj.storedItems.Insert(vstore(item_in_storage));
+			}
 		}
-		
-		if(original_count == 0)
+		if(g_Game.GetVSTConfig().Get_script_logging() == 1)
+			Print("[vStorage] in close items check count = " + count + " original_count = " + original_count);
+		if(count == 1)
 			setItems(false);
 		else 
 			setItems(true);
@@ -896,11 +968,11 @@ modded class Barrel_ColorBase
 			file.Close();
 			//Print("Content Serialized and saved");
 		}
-		if (m_vst_hasitems)
-		{
-			GetInventory().CreateEntityInCargo("Rag");
-		}
-		//Print("[vStorage] vclose() end");
+		//if (m_vst_hasitems) //commented out, new method to block poking holes and moving barrels with virtual items
+		//{
+			//GetInventory().CreateEntityInCargo("Rag");
+		//}
+		////Print("[vStorage] vclose() end");
 	}
 
 	tofuvStorageObj vstore(EntityAI item_in_storage)
@@ -1459,10 +1531,11 @@ modded class Paper
 {
 	override string GetDisplayName()
 	{
-		if(m_NoteContents.GetNoteText() != "")
+		if(((m_NoteContents) && (m_NoteContents.GetNoteText() != ""))
 		{
 			return "WrittenNote";
 		}
 		return super.GetDisplayName();
 	}
 }
+

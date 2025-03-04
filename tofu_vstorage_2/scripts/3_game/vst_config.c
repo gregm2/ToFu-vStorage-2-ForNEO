@@ -98,8 +98,8 @@ class VST_Config
 		locked_message_icon = "set:dayz_inventory image:barrel";
 		locked_message_show_time_secs = 5.0;
 	
-		cooldown_message_title = "Barrel contents saving";
-		cooldown_message_body = "Please be patient while contents are saved, then you may re-open the barrel";
+		cooldown_message_title = "Barrel cooldown";
+		cooldown_message_body = "Please be patient while contents are saved/restored, then you may interact with the barrel";
 		cooldown_message_icon = "set:dayz_inventory image:barrel";
 		cooldown_message_show_time_secs = 5.0;
 

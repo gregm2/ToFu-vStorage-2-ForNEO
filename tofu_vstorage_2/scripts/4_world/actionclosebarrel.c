@@ -29,9 +29,9 @@ modded class ActionCloseBarrel
 			{
 				if (ntarget.vst_neo_check_cooldown_and_notify(playerID))
 				{
+					ntarget.vclose(steamID);
 					super.OnExecuteServer(action_data);
 					ntarget.vst_neo_closed_by(playerID); // gotta be before vclose to catch an empty barrel as we stick a rag in it to keep it from being turned into a firebarrel
-					ntarget.vclose(steamID);
 				}
 				/* check function above will perform cooldown notification */
 			}

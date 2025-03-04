@@ -29,8 +29,9 @@ modded class ActionOpenBarrel
 			{
 				if (ntarget.vst_neo_check_cooldown_and_notify(playerID))
 				{
-					ntarget.vopen(player, steamID);
 					super.OnExecuteServer(action_data);
+					//ntarget.vopen(player, steamID);
+					GetGame().GetCallQueue( CALL_CATEGORY_SYSTEM ).CallLater(ntarget.vopen, 100, false, player, steamID);
 				}
 				/* check function above will perform cooldown notification */
 			}

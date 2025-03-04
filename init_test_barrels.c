@@ -39,7 +39,7 @@ void barrel_test_stage1 (PlayerBase player)
 	{
 		pos = playerPos;
 		pos[2] = pos[2] + (i*3);
-		barrel = Barrel_ColorBase.Cast(GetGame().CreateObject("Barrel_Red", pos));
+		barrel = Barrel_ColorBase.Cast(player.SpawnEntityOnGroundPos("Barrel_Red", pos));
 		barrel.Open();
 		barrel.GetInventory().CreateEntityInCargo("Rag");
 		g_barrelArray.Insert(barrel);
@@ -47,7 +47,7 @@ void barrel_test_stage1 (PlayerBase player)
 	
 	pos = playerPos;
 	pos[2] = pos[2] + 18;
-	barrel = Barrel_ColorBase.Cast(GetGame().CreateObject("Barrel_Blue", pos));
+	barrel = Barrel_ColorBase.Cast(player.SpawnEntityOnGroundPos("Barrel_Blue", pos));
 	barrel.Close();
 	barrel.GetInventory().CreateEntityInCargo("Rag");
 	g_barrelArray.Insert(barrel);
@@ -56,17 +56,17 @@ void barrel_test_stage1 (PlayerBase player)
 	for (i = 1; i < 6; i++)
 	{
 		pos = playerPos;
-		pos[1] = pos[1] + 1;
+		pos[0] = pos[0] + 1;
 		pos[2] = pos[2] + (i*3);
-		barrel = Barrel_ColorBase.Cast(GetGame().CreateObject("Barrel_Green", pos));
+		barrel = Barrel_ColorBase.Cast(player.SpawnEntityOnGroundPos("Barrel_Green", pos));
 		barrel.Open();
 		g_barrelArray.Insert(barrel);
 	}
 	
 	pos = playerPos;
-	pos[1] = pos[1] + 1;
+	pos[0] = pos[0] + 1;
 	pos[2] = pos[2] + 18;
-	barrel = Barrel_ColorBase.Cast(GetGame().CreateObject("Barrel_Yellow", pos));
+	barrel = Barrel_ColorBase.Cast(player.SpawnEntityOnGroundPos("Barrel_Yellow", pos));
 	barrel.Close();
 	g_barrelArray.Insert(barrel);
 	GetGame().GetCallQueue( CALL_CATEGORY_SYSTEM ).CallLater( barrel_test_stage1_check_and_clean, 65000, false, player, old_min, old_max);
@@ -109,7 +109,7 @@ void barrel_test_stage2 (PlayerBase player)
 	vector pos = player.GetPosition();
 	pos[2] = pos[2] + 0.5;
 	
-	Barrel_ColorBase b = Barrel_ColorBase.Cast(GetGame().CreateObject("Barrel_Red", pos));
+	Barrel_ColorBase b = Barrel_ColorBase.Cast(player.SpawnEntityOnGroundPos("Barrel_Red", pos));
     b.Open();	
 	b.GetInventory().CreateEntityInCargo("SparkPlug");
 	b.GetInventory().CreateEntityInCargo("TireRepairKit");
@@ -149,7 +149,7 @@ void barrel_test_stage2_restore (PlayerBase player)
 	b = g_barrelArray.Get(0);
 	b.vopen(player, "");
 	
-	test_string = "Remaining tests are manual";
+	test_string = "Remaining tests are manual. Red barrels are unclaimed, green barrels belong to another player";
 	NotificationSystem.SendNotificationToPlayerIdentityExtended(
 		player.GetIdentity(), 
 		7.0,
@@ -162,8 +162,24 @@ void barrel_test_stage2_restore (PlayerBase player)
 	{
 		vector pos = player.GetPosition();
 		pos[2] = pos[2] + x;
-		GetGame().CreateObject("Barrel_Red", pos);
+		player.SpawnEntityOnGroundPos("Barrel_Red", pos);
 	}
+	for (x = 3; x < 21; x=x+3)
+	{
+		pos = player.GetPosition();
+		pos[2] = pos[2] + x;
+		pos[0] = pos[0] + 1;
+		b = Barrel_ColorBase.Cast(player.SpawnEntityOnGroundPos("Barrel_Green", pos));
+		b.saveSteamid("not", "real", "steamid")
+	}
+	Paper paper = Paper.Cast(player.SpawnEntityOnGroundPos("Paper", player.GetPosition()));
+	paper.GetWrittenNoteData().SetNoteText("<html><body><style>p{color: white;background-color: Black;}</style><p>test note text<br><h1>HTMLheading1test</h1></p></body></html>");
+	Param1<string> text = new Param1<string>(paper.GetWrittenNoteData().GetNoteText());
+	paper.RPCSingleParam(ERPCs.RPC_READ_NOTE, text, true,player.GetIdentity());
+	
+	pos = player.GetPosition();
+	pos[0] = pos[0] + 1;
+	player.SpawnEntityOnGroundPos("Paper", pos)
 }
 
 void run_barrel_test(string playerName)
@@ -192,6 +208,47 @@ void run_barrel_test(string playerName)
 	}
 	
 	GetGame().GetCallQueue( CALL_CATEGORY_SYSTEM ).CallLater( barrel_test_stage1, 1000, false, found_player);
+}
+
+void barrel_admin(string playerName, bool enable)
+{
+	autoptr array<Man> players = new array<Man>;
+	GetGame().GetPlayers(players);
+	
+	PlayerBase pb;
+	PlayerBase found_player;
+	PlayerIdentity pi;
+	foreach (Man m: players)
+	{
+		pb = PlayerBase.Cast(m);
+		if(pb)
+		{
+			pi = pb.GetIdentity();
+			if (pi)
+			{
+				if (pi.GetName() == playerName)
+				{
+					found_player = pb;
+					break;
+				}
+			}
+		}
+	}
+	
+	if (!found_player)
+	{
+		return;
+	}
+	
+	array<string> Admins_List = g_Game.GetVSTConfig().Get_Admins();
+	if (enable)
+	{
+		Admins_List.Insert(pi.GetPlainId());
+	}
+	else
+	{
+		Admins_List.RemoveItem(pi.GetPlainId());
+	}
 }
 
 void main()
@@ -305,8 +362,18 @@ class CustomMission: MissionServer
 				if (message == "/testbarrels")
 				{
 					run_barrel_test(sender_name);
+					break;
 				}
-				break;
+				if (message == "/addadmin")
+				{
+					barrel_admin(sender_name, true);
+					break;
+				}
+				if (message == "/deladmin")
+				{
+					barrel_admin(sender_name, false);
+					break;
+				}
 				
 			case ClientReadyEventTypeID:
 				ClientReadyEventParams readyParams;
