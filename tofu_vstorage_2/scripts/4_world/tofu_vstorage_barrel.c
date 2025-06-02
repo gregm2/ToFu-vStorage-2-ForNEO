@@ -337,6 +337,9 @@ modded class Barrel_ColorBase
 	{
 		//Print(steamid);
 		
+		// for purge just return true
+		return true;
+/*
 		string steamid_part1 = steamid.Substring(0,6);
 		string steamid_part2 = steamid.Substring(6,6);
 		string steamid_part3 = steamid.Substring(12,5);
@@ -349,15 +352,15 @@ modded class Barrel_ColorBase
 		int steamid2 = mod2.ToInt();
 		int steamid3 = mod3.ToInt();
 		
-		/*
-		Print(m_vst_wasplaced);
-		Print(m_vst_steamid1);
-		Print(m_vst_steamid2);
-		Print(m_vst_steamid3);
-		Print(steamid1);
-		Print(steamid2);
-		Print(steamid3);
-		*/
+		
+		//Print(m_vst_wasplaced);
+		//Print(m_vst_steamid1);
+		//Print(m_vst_steamid2);
+		//Print(m_vst_steamid3);
+		//Print(steamid1);
+		//Print(steamid2);
+		//Print(steamid3);
+		
 		
 		if(m_vst_wasplaced == false) {
 			return true;
@@ -368,10 +371,14 @@ modded class Barrel_ColorBase
 				
 		
 		return false;
+*/
 	}
 	
 	bool canInteractAdmin(string steamid)
 	{
+		// for purge just return true
+		return true;
+/*
 		array<string> Admins_List = g_Game.GetVSTConfig().Get_Admins();
 		
 		for (int i = 0; i < Admins_List.Count(); i++)
@@ -381,6 +388,7 @@ modded class Barrel_ColorBase
 		}
 		
 		return false;
+*/
 	}
 	
 	
