@@ -1,3 +1,10 @@
+class VST_Config_v2
+{
+	// we don't persist this yet so changes can be made here for live servers
+	bool disable_barrel_locks = false;
+	bool log_to_cftools = true;
+}
+
 class VST_Config
 {	
 	

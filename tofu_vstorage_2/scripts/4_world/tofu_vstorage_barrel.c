@@ -117,6 +117,10 @@ modded class Barrel_ColorBase
 	
 	void vst_neo_closed_by(PlayerIdentity identity)
 	{
+		if (g_Game.GetVSTConfig_v2().disable_barrel_locks)
+		{
+			return; /* barrel locking/unlocking turned off */
+		}
 		if (!identity)
 		{
 			return; 
@@ -155,6 +159,23 @@ modded class Barrel_ColorBase
 					string steamid_part3 = steamid.Substring(12,5);
 					saveSteamid(steamid_part1,steamid_part2,steamid_part3);
 					vst_neo_send_claim_notification(identity);
+					#ifdef GAMELABS
+					if (g_Game.GetVSTConfig_v2().log_to_cftools)
+					{
+						Man lockman = identity.GetPlayer();
+						if (lockman)
+						{
+							PlayerBase lockplayer = PlayerBase.Cast(lockman);
+							if (lockplayer)
+							{
+								_LogPlayerEx locklogplayer = _LogPlayerEx(lockplayer);
+								_Payload_ItemInteract locklogpayload = new _Payload_ItemInteract(
+									locklogplayer, "close action", this.GetType(), "claimed");
+								GetGameLabs().GetApi().ItemInteract(new _Callback(), locklogpayload);								
+							}
+						}
+					}
+					#endif /* #ifdef GAMELABS */
 				}
 			}
 			if (item_count == 0)
@@ -335,6 +356,11 @@ modded class Barrel_ColorBase
 	
 	bool canInteract(string steamid)
 	{
+		if (g_Game.GetVSTConfig_v2().disable_barrel_locks)
+		{
+			return true;
+		}
+		
 		//Print(steamid);
 		
 		string steamid_part1 = steamid.Substring(0,6);
@@ -672,7 +698,7 @@ modded class Barrel_ColorBase
 		}
 		
 		//derived from MiscGameplayFunctions.DropAllItemsInInventoryInBounds
-		ItemBase ib = ItemBase.Cast(this);
+		ItemBase ib = this;
 		vector halfExtents = m_HalfExtents;
 		autoptr array<EntityAI> items = new array<EntityAI>;
 		ib.GetInventory().EnumerateInventory(InventoryTraversalType.LEVELORDER, items);
@@ -692,7 +718,7 @@ modded class Barrel_ColorBase
 		for ( int i = 0; i < count; ++i )
 		{
 			itemtothrow = items.Get(i);
-			if ((item) && (item == itemtothrow)
+			if ((item) && (item == itemtothrow))
 				ib.GetInventory().DropEntityInBounds(InventoryMode.SERVER, ib, itemtothrow, halfExtents, angle, cos, sin);
 		}
 		
@@ -923,7 +949,7 @@ modded class Barrel_ColorBase
 		
 		
 		containerObj.persistentId = persistentIdToSave;
-		containerObj.storedItems = new ref array<ref tofuvStorageObj>;
+		containerObj.storedItems = new array<ref tofuvStorageObj>;
 		
 		autoptr array<EntityAI> items = new array<EntityAI>;
 		GetInventory().EnumerateInventory(InventoryTraversalType.LEVELORDER, items);
@@ -1531,7 +1557,7 @@ modded class Paper
 {
 	override string GetDisplayName()
 	{
-		if(((m_NoteContents) && (m_NoteContents.GetNoteText() != ""))
+		if((m_NoteContents) && (m_NoteContents.GetNoteText() != ""))
 		{
 			return "WrittenNote";
 		}
