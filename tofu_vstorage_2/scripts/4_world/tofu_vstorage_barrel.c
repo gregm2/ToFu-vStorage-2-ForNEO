@@ -6,6 +6,7 @@ modded class Barrel_ColorBase
 	
 	protected bool m_vst_hasitems;
 	protected bool m_vst_wasplaced; // On NEO we will be using this for claimed
+	protected bool m_vst_metadata_updated; // flag to indicate if metadata has been updated since last save
 	protected ref array<string> m_vst_owner_names = {};
 	protected ref array<string> m_vst_owner_steamids = {}; // may not match order of names
 	protected ref array<int> m_vst_owner_steamid_hashes = {}; // do not store as metadata, re-generate whenver steamid array updates
@@ -27,6 +28,8 @@ modded class Barrel_ColorBase
 	{
 		// constructors should not require 'super' calls
 		m_vst_wasplaced = false;
+		
+		m_vst_metadata_updated = false;
 		
 		m_didVStorage = false;	
 
@@ -114,7 +117,10 @@ modded class Barrel_ColorBase
 			file.Write(containerObjMeta);
 			file.Close();
 			//Print("Metadata Serialized and saved");
+
 		}
+		
+		m_vst_metadata_updated = false;
 	}
 	
 	void vst_neo_load_metadata()
@@ -453,18 +459,28 @@ modded class Barrel_ColorBase
 		if (m_vst_owner_names.Find(playerName) == -1)
 		{
 			m_vst_owner_names.Insert(playerName);
+			m_vst_metadata_updated = true;
 		}
 		if (m_vst_owner_steamids.Find(steamid) == -1)
 		{
 			m_vst_owner_steamids.Insert(steamid);
+			m_vst_metadata_updated = true;
 		}
 		
 		if (m_vst_owner_steamid_hashes.Find(steamid_hash) == -1)
 		{
 			m_vst_owner_steamid_hashes.Insert(steamid_hash);
 		}
-		
-		m_vst_wasplaced = true;
+		if (!m_vst_wasplaced)
+		{
+			m_vst_metadata_updated = true;
+			m_vst_wasplaced = true;
+		}
+
+		if (m_vst_metadata_updated)
+		{
+			vst_neo_save_metadata();
+		}
 		
 		vst_neo_send_claim_notification(identity);
 	}
@@ -479,6 +495,7 @@ modded class Barrel_ColorBase
 		{
 			vst_neo_send_unclaim_notification(identity);
 		}
+		vst_neo_save_metadata();
 	}
 
 	void vst_timer_start(bool express = false)
@@ -583,7 +600,10 @@ modded class Barrel_ColorBase
 	override void OnStoreSave(ParamsWriteContext ctx)
 	{		
 		super.OnStoreSave(ctx);
-		vst_neo_save_metadata();
+		if(m_vst_metadata_updated) // only save if there is an unsaved update
+		{
+			vst_neo_save_metadata();
+		}
 	}
 	
 	// moved OnStoreLoad to AfterStoreLoad as that's when GetPersistentID is valid
