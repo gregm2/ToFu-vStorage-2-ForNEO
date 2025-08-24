@@ -88,6 +88,87 @@ modded class Barrel_ColorBase
 		return filename;
 	}
 	
+	void vst_neo_save_metadata()
+	{
+		autoptr tofuvStorageContainerMeta containerObjMeta = new tofuvStorageContainerMeta();
+		string filename;
+		
+		if(this.GetType() != "tofu_vstorage_q_barrel_express")
+		{
+			filename = vst_neo_get_meta_filename();
+		}
+		else
+		{
+			//filename = steamid+".meta";
+			return;
+		}
+		
+		containerObjMeta.m_vst_hasitems = m_vst_hasitems;
+		containerObjMeta.m_vst_wasplaced = m_vst_wasplaced;
+		containerObjMeta.m_vst_owner_names = m_vst_owner_names;
+		containerObjMeta.m_vst_owner_steamids = m_vst_owner_steamids;
+		
+		FileSerializer file = new FileSerializer();
+		if (file.Open(filename, FileMode.WRITE))
+		{
+			file.Write(containerObjMeta);
+			file.Close();
+			//Print("Metadata Serialized and saved");
+		}
+	}
+	
+	void vst_neo_load_metadata()
+	{
+		string filename;
+		
+		if(this.GetType() != "tofu_vstorage_q_barrel_express")
+		{
+			filename = vst_neo_get_meta_filename();
+		}
+		else
+		{
+			//filename = steamid+".meta";
+			return;
+		}
+		
+		// before the first save, meta file won't exist, especially loading this into a live server
+		if (!FileExist(filename))
+		{
+			return;
+		}
+		
+		autoptr tofuvStorageContainerMeta containerObjMeta = new tofuvStorageContainerMeta();
+		FileSerializer file = new FileSerializer();
+		if (file.Open(filename, FileMode.READ))
+		{
+			file.Read(containerObjMeta);
+			file.Close();
+			//Print("Metadata Serialized and saved");
+		}
+
+		m_vst_hasitems = containerObjMeta.m_vst_hasitems;
+		m_vst_wasplaced = containerObjMeta.m_vst_wasplaced;
+		m_vst_owner_names = containerObjMeta.m_vst_owner_names;
+		m_vst_owner_steamids = containerObjMeta.m_vst_owner_steamids;
+		
+		if ((m_vst_owner_steamids) && (m_vst_owner_steamids.Count() > 0))
+		{
+			m_vst_owner_steamid_hashes.Clear();
+			foreach (string steamid: m_vst_owner_steamids)
+			{
+				int steamid_hash = steamid.Hash();
+				if (m_vst_owner_steamid_hashes.Find(steamid_hash) == -1)
+				{
+					m_vst_owner_steamid_hashes.Insert(steamid_hash);
+				}
+			}
+		}
+		if (m_vst_hasitems)
+		{
+			SetTakeable(false);
+		}
+	}
+	
 	
 	void vst_neo_closed_by(PlayerIdentity identity)
 	{
@@ -500,122 +581,16 @@ modded class Barrel_ColorBase
 	}
 	
 	override void OnStoreSave(ParamsWriteContext ctx)
-	{   
-		
+	{		
 		super.OnStoreSave(ctx);
-		
-		
-		autoptr tofuvStorageContainerMeta containerObjMeta = new tofuvStorageContainerMeta();
-		string filename;
-		
-		if(this.GetType() != "tofu_vstorage_q_barrel_express")
-		{
-			filename = vst_neo_get_meta_filename();
-		}
-		else
-		{
-			//filename = steamid+".meta";
-			return;
-		}
-		
-		containerObjMeta.m_vst_hasitems = m_vst_hasitems;
-		containerObjMeta.m_vst_wasplaced = m_vst_wasplaced;
-		containerObjMeta.m_vst_owner_names = m_vst_owner_names;
-		containerObjMeta.m_vst_owner_steamids = m_vst_owner_steamids;
-		
-		FileSerializer file = new FileSerializer();
-		if (file.Open(filename, FileMode.WRITE))
-		{
-			file.Write(containerObjMeta);
-			file.Close();
-			//Print("Metadata Serialized and saved");
-		}
-
-		// don't corrupt storage on server side only mod
-		//ctx.Write(m_vst_hasitems);
-		//ctx.Write(m_vst_steamid1);
-		//ctx.Write(m_vst_steamid2);
-		//ctx.Write(m_vst_steamid3);
-		//ctx.Write(m_vst_wasplaced);
-		
-		//Print("[vStorage] saving m_vst_wasplaced "+m_vst_wasplaced);
-		//Print("[vStorage] saving m_vst_steamid1 "+m_vst_steamid1);
-		//Print("[vStorage] saving m_vst_steamid2 "+m_vst_steamid2);
-		//Print("[vStorage] saving m_vst_steamid3 "+m_vst_steamid3);
-		//Print("[vStorage] saving m_vst_hasitems "+m_vst_hasitems);
-		
-		
+		vst_neo_save_metadata();
 	}
 	
 	// moved OnStoreLoad to AfterStoreLoad as that's when GetPersistentID is valid
 	override void AfterStoreLoad()
-	{   
+	{
 		super.AfterStoreLoad();
-		string filename;
-		
-		if(this.GetType() != "tofu_vstorage_q_barrel_express")
-		{
-			filename = vst_neo_get_meta_filename();
-		}
-		else
-		{
-			//filename = steamid+".meta";
-			return;
-		}
-		
-		// before the first save, meta file won't exist, especially loading this into a live server
-		if (!FileExist(filename))
-		{
-			return;
-		}
-		
-		autoptr tofuvStorageContainerMeta containerObjMeta = new tofuvStorageContainerMeta();
-		FileSerializer file = new FileSerializer();
-		if (file.Open(filename, FileMode.READ))
-		{
-			file.Read(containerObjMeta);
-			file.Close();
-			//Print("Metadata Serialized and saved");
-		}
-
-		m_vst_hasitems = containerObjMeta.m_vst_hasitems;
-		m_vst_wasplaced = containerObjMeta.m_vst_wasplaced;
-		m_vst_owner_names = containerObjMeta.m_vst_owner_names;
-		m_vst_owner_steamids = containerObjMeta.m_vst_owner_steamids;
-		
-		if ((m_vst_owner_steamids) && (m_vst_owner_steamids.Count() > 0))
-		{
-			m_vst_owner_steamid_hashes.Clear();
-			foreach (string steamid: m_vst_owner_steamids)
-			{
-				int steamid_hash = steamid.Hash();
-				if (m_vst_owner_steamid_hashes.Find(steamid_hash) == -1)
-				{
-					m_vst_owner_steamid_hashes.Insert(steamid_hash);
-				}
-			}
-		}
-		if (m_vst_hasitems)
-		{
-			SetTakeable(false);
-		}
-		/*
-		if (ctx.Read(m_vst_hasitems)) { Print("[vStorage] reading m_vst_hasitems "+m_vst_hasitems); }
-		if (ctx.Read(m_vst_steamid1)) { Print("[vStorage] reading m_vst_steamid1 "+m_vst_steamid1); }
-		if (ctx.Read(m_vst_steamid2)) { Print("[vStorage] reading m_vst_steamid2 "+m_vst_steamid2); }
-		if (ctx.Read(m_vst_steamid3)) { Print("[vStorage] reading m_vst_steamid3 "+m_vst_steamid3); }
-		if (ctx.Read(m_vst_wasplaced)) { Print("[vStorage] reading m_vst_wasplaced "+m_vst_wasplaced); }
-		*/
-		
-		// server side only, don't mess up serializer's file pointer
-		//if (ctx.Read(m_vst_hasitems)) {  }
-		//if (ctx.Read(m_vst_steamid1)) {  }
-		//if (ctx.Read(m_vst_steamid2)) {  }
-		//if (ctx.Read(m_vst_steamid3)) {  }
-		//if (ctx.Read(m_vst_wasplaced)) {  }
-			
-		
-		return;
+		vst_neo_load_metadata();
 	}
 	
 	
