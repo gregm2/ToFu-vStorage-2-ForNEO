@@ -43,6 +43,9 @@ class VST_Config
 	protected ref array<string> Blacklist;
 	protected ref array<string> Admins;
 	
+	[NonSerialized()]
+	protected ref array<int> Admins_hashes = {};
+	
 	void VST_Config()
 	{
 		if (GetGame().IsServer())
@@ -62,17 +65,39 @@ class VST_Config
 			Load();
 		}
     }
+	
 
+	void Update_Admin_Hashes()
+	{
+		if (Admins_hashes)
+		{
+			Admins_hashes.Clear();
+			if (Admins)
+			{
+				foreach(string adminsteamid : Admins)
+				{
+					int hash = adminsteamid.Hash();
+					if (Admins_hashes.Find(hash) == -1)
+					{
+						Admins_hashes.Insert(hash);
+					}
+				}
+			}
+		}
+	}
+	
+	
 	void Load()
     {
 		JsonFileLoader<VST_Config>.JsonLoadFile(FULLPATH, this);
-		Save();
+		Save(); // UpdateAdminHashes call will happen here
     }
 
 	
 	protected void Save()
     {
         JsonFileLoader<VST_Config>.JsonSaveFile(FULLPATH, this);
+        Update_Admin_Hashes();
     }
 
 	protected void Default()
@@ -135,8 +160,7 @@ class VST_Config
 		
 		Admins = new array<string>;
 		Admins.Insert("12345678901234567");
-		
-		Save();
+		Save(); // UpdateAdminHashes call will happen here
 	}
 
 	array<string> Get_Blacklist()
@@ -147,6 +171,11 @@ class VST_Config
 	array<string> Get_Admins()
 	{
 		return Admins;
+	}
+	
+	array<int> Get_Admin_Hashes()
+	{
+		return Admins_hashes;
 	}
 
 	int Get_script_logging()
