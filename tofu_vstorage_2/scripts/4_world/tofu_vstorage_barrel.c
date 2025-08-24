@@ -308,7 +308,7 @@ modded class Barrel_ColorBase
 			return true;
 		}
 				
-		if (m_vst_owner_steamid_hashes)
+		if ((m_vst_owner_steamid_hashes) && (m_vst_owner_steamid_hashes.Count() > 0))
 		{
 			// can rapidly reject non-owners with integer rather than string compare
 			int steamid_hash = steamid.Hash();
@@ -330,6 +330,16 @@ modded class Barrel_ColorBase
 	
 	bool canInteractAdmin(string steamid)
 	{
+		array<int> Admins_Hashes = g_Game.GetVSTConfig().Get_Admin_Hashes();
+		
+		if (Admins_Hashes)
+		{
+			int hash = steamid.Hash();
+			if (Admins_Hashes && (Admins_Hashes.Count() > 0) && (Admins_Hashes.Find(hash) == -1))
+			{
+				return false;
+			}
+		}
 		array<string> Admins_List = g_Game.GetVSTConfig().Get_Admins();
 		
 		for (int i = 0; i < Admins_List.Count(); i++)
