@@ -728,7 +728,7 @@ modded class Barrel_ColorBase
 		super.EEHealthLevelChanged(oldLevel,newLevel,zone);
 	}
 	
-	override void Delete()
+	override void EEDelete(EntityAI parent)
 	{
 		string filename = vst_neo_get_save_filename();
 		
@@ -743,7 +743,7 @@ modded class Barrel_ColorBase
 		{
 			DeleteFile(filename);
 		}
-		super.Delete();
+		super.EEDelete(parent);
 	}
 	
 	override bool EEOnDamageCalculated(TotalDamageResult damageResult, int damageType, EntityAI source, int component, string dmgZone, string ammo, vector modelPos, float speedCoef)
