@@ -5,11 +5,10 @@ modded class Barrel_ColorBase
 {
 	
 	protected bool m_vst_hasitems;
-	protected int m_vst_steamid1;
-	protected int m_vst_steamid2;
-	protected int m_vst_steamid3;
 	protected bool m_vst_wasplaced; // On NEO we will be using this for claimed
 	protected ref array<string> m_vst_owner_names = {};
+	protected ref array<string> m_vst_owner_steamids = {}; // may not match order of names
+	protected ref array<int> m_vst_owner_steamid_hashes = {}; // do not store as metadata, re-generate whenver steamid array updates
 	
 	protected int m_didVStorage;
 	
@@ -27,9 +26,6 @@ modded class Barrel_ColorBase
 	void Barrel_ColorBase()
 	{
 		// constructors should not require 'super' calls
-		m_vst_steamid1 	= 0;
-		m_vst_steamid2 	= 0;
-		m_vst_steamid3 	= 0;
 		m_vst_wasplaced = false;
 		
 		m_didVStorage = false;	
@@ -92,29 +88,6 @@ modded class Barrel_ColorBase
 		return filename;
 	}
 	
-	void saveSteamid(string a, string b, string c) {
-		//Print("[vStorage] a "+a);
-		//Print("[vStorage] b "+b);
-		//Print("[vStorage] c "+c);
-		
-		string mod1 = "9"+a; 
-		string mod2 = "9"+b;
-		string mod3 = "9"+c;
-		
-		//Print("[vStorage] mod1 "+mod1);
-		//Print("[vStorage] mod2 "+mod2);
-		//Print("[vStorage] mod3 "+mod3);
-		
-		m_vst_steamid1 = mod1.ToInt();
-		m_vst_steamid2 = mod2.ToInt();
-		m_vst_steamid3 = mod3.ToInt();
-		
-		//Print("[vStorage] m_vst_steamid1 "+m_vst_steamid1);
-		//Print("[vStorage] m_vst_steamid2 "+m_vst_steamid2);
-		//Print("[vStorage] m_vst_steamid3 "+m_vst_steamid3);
-				
-		m_vst_wasplaced = true;
-	}
 	
 	void vst_neo_closed_by(PlayerIdentity identity)
 	{
@@ -326,37 +299,32 @@ modded class Barrel_ColorBase
 	bool canInteract(string steamid)
 	{
 		//Print(steamid);
-		
-		string steamid_part1 = steamid.Substring(0,6);
-		string steamid_part2 = steamid.Substring(6,6);
-		string steamid_part3 = steamid.Substring(12,5);
-		
-		string mod1 = "9"+steamid_part1; 
-		string mod2 = "9"+steamid_part2;
-		string mod3 = "9"+steamid_part3;
-		
-		int steamid1 = mod1.ToInt();
-		int steamid2 = mod2.ToInt();
-		int steamid3 = mod3.ToInt();
-		
+	
 		/*
 		Print(m_vst_wasplaced);
-		Print(m_vst_steamid1);
-		Print(m_vst_steamid2);
-		Print(m_vst_steamid3);
-		Print(steamid1);
-		Print(steamid2);
-		Print(steamid3);
 		*/
 		
 		if(m_vst_wasplaced == false) {
 			return true;
 		}
 				
-		if(m_vst_steamid1 == steamid1 && m_vst_steamid2 == steamid2 && m_vst_steamid3 == steamid3)
-			return true;
-				
+		if (m_vst_owner_steamid_hashes)
+		{
+			// can rapidly reject non-owners with integer rather than string compare
+			int steamid_hash = steamid.Hash();
+			if (m_vst_owner_steamid_hashes.Find(steamid_hash) == -1)
+			{
+				return false;
+			}
+		}
 		
+		// now check string match
+		if ((m_vst_owner_steamids) && (m_vst_owner_steamids.Find(steamid) != -1))
+		{
+			return true;
+		}
+				
+		// default to no
 		return false;
 	}
 	
@@ -383,30 +351,39 @@ modded class Barrel_ColorBase
 		string playerName = identity.GetName();
 		
 		string steamid = identity.GetPlainId();
+		int steamid_hash = steamid.Hash();
 		
 		if(g_Game.GetVSTConfig().Get_script_logging() == 1)
 		{
 			Print("[vStorage] player "+steamid+ "claimed barrel "+GetType()+" at pos "+GetPosition());
 		}
-		//string steamid_part1 = "999999";
-		string steamid_part1 = steamid.Substring(0,6);
-		string steamid_part2 = steamid.Substring(6,6);
-		string steamid_part3 = steamid.Substring(12,5);
-		saveSteamid(steamid_part1,steamid_part2,steamid_part3);
+
+		
 		if (m_vst_owner_names.Find(playerName) == -1)
 		{
 			m_vst_owner_names.Insert(playerName);
 		}
+		if (m_vst_owner_steamids.Find(steamid) == -1)
+		{
+			m_vst_owner_steamids.Insert(steamid);
+		}
+		
+		if (m_vst_owner_steamid_hashes.Find(steamid_hash) == -1)
+		{
+			m_vst_owner_steamid_hashes.Insert(steamid_hash);
+		}
+		
+		m_vst_wasplaced = true;
+		
 		vst_neo_send_claim_notification(identity);
 	}
 	
 	void Unclaim(PlayerIdentity identity = null) 
 	{
 		m_vst_wasplaced = false;
-		m_vst_steamid1 = 0;
-		m_vst_steamid2 = 0;
-		m_vst_steamid3 = 0;
 		m_vst_owner_names.Clear();
+		m_vst_owner_steamids.Clear();
+		m_vst_owner_steamid_hashes.Clear();
 		if (identity) // if administratively unlocked via cftools/command ID will be null
 		{
 			vst_neo_send_unclaim_notification(identity);
@@ -532,11 +509,9 @@ modded class Barrel_ColorBase
 		}
 		
 		containerObjMeta.m_vst_hasitems = m_vst_hasitems;
-		containerObjMeta.m_vst_steamid1 = m_vst_steamid1;
-		containerObjMeta.m_vst_steamid2 = m_vst_steamid2;
-		containerObjMeta.m_vst_steamid3 = m_vst_steamid3;
 		containerObjMeta.m_vst_wasplaced = m_vst_wasplaced;
 		containerObjMeta.m_vst_owner_names = m_vst_owner_names;
+		containerObjMeta.m_vst_owner_steamids = m_vst_owner_steamids;
 		
 		FileSerializer file = new FileSerializer();
 		if (file.Open(filename, FileMode.WRITE))
@@ -594,11 +569,22 @@ modded class Barrel_ColorBase
 		}
 
 		m_vst_hasitems = containerObjMeta.m_vst_hasitems;
-		m_vst_steamid1 = containerObjMeta.m_vst_steamid1;
-		m_vst_steamid2 = containerObjMeta.m_vst_steamid2;
-		m_vst_steamid3 = containerObjMeta.m_vst_steamid3;
 		m_vst_wasplaced = containerObjMeta.m_vst_wasplaced;
 		m_vst_owner_names = containerObjMeta.m_vst_owner_names;
+		m_vst_owner_steamids = containerObjMeta.m_vst_owner_steamids;
+		
+		if ((m_vst_owner_steamids) && (m_vst_owner_steamids.Count() > 0))
+		{
+			m_vst_owner_steamid_hashes.Clear();
+			foreach (string steamid: m_vst_owner_steamids)
+			{
+				int steamid_hash = steamid.Hash();
+				if (m_vst_owner_steamid_hashes.Find(steamid_hash) == -1)
+				{
+					m_vst_owner_steamid_hashes.Insert(steamid_hash);
+				}
+			}
+		}
 		if (m_vst_hasitems)
 		{
 			SetTakeable(false);
