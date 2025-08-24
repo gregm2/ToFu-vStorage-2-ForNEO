@@ -115,19 +115,6 @@ modded class Barrel_ColorBase
 			file.Close();
 			//Print("Metadata Serialized and saved");
 		}
-
-		// don't corrupt storage on server side only mod
-		//ctx.Write(m_vst_hasitems);
-		//ctx.Write(m_vst_steamid1);
-		//ctx.Write(m_vst_steamid2);
-		//ctx.Write(m_vst_steamid3);
-		//ctx.Write(m_vst_wasplaced);
-		
-		//Print("[vStorage] saving m_vst_wasplaced "+m_vst_wasplaced);
-		//Print("[vStorage] saving m_vst_steamid1 "+m_vst_steamid1);
-		//Print("[vStorage] saving m_vst_steamid2 "+m_vst_steamid2);
-		//Print("[vStorage] saving m_vst_steamid3 "+m_vst_steamid3);
-		//Print("[vStorage] saving m_vst_hasitems "+m_vst_hasitems);
 	}
 	
 	void vst_neo_load_metadata()
@@ -180,22 +167,6 @@ modded class Barrel_ColorBase
 		{
 			SetTakeable(false);
 		}
-		/*
-		if (ctx.Read(m_vst_hasitems)) { Print("[vStorage] reading m_vst_hasitems "+m_vst_hasitems); }
-		if (ctx.Read(m_vst_steamid1)) { Print("[vStorage] reading m_vst_steamid1 "+m_vst_steamid1); }
-		if (ctx.Read(m_vst_steamid2)) { Print("[vStorage] reading m_vst_steamid2 "+m_vst_steamid2); }
-		if (ctx.Read(m_vst_steamid3)) { Print("[vStorage] reading m_vst_steamid3 "+m_vst_steamid3); }
-		if (ctx.Read(m_vst_wasplaced)) { Print("[vStorage] reading m_vst_wasplaced "+m_vst_wasplaced); }
-		*/
-		
-		// server side only, don't mess up serializer's file pointer
-		//if (ctx.Read(m_vst_hasitems)) {  }
-		//if (ctx.Read(m_vst_steamid1)) {  }
-		//if (ctx.Read(m_vst_steamid2)) {  }
-		//if (ctx.Read(m_vst_steamid3)) {  }
-		//if (ctx.Read(m_vst_wasplaced)) {  }
-		
-		return;
 	}
 	
 	
