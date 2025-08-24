@@ -57,9 +57,7 @@ class tofuvStorageContainer
 class tofuvStorageContainerMeta
 {
 	bool m_vst_hasitems;
-	int m_vst_steamid1;
-	int m_vst_steamid2;
-	int m_vst_steamid3;
 	bool m_vst_wasplaced;
 	ref array<string> m_vst_owner_names = {};
+	ref array<string> m_vst_owner_steamids = {};
 };
