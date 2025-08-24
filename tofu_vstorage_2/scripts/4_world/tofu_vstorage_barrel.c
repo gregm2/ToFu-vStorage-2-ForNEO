@@ -9,6 +9,7 @@ modded class Barrel_ColorBase
 	protected int m_vst_steamid2;
 	protected int m_vst_steamid3;
 	protected bool m_vst_wasplaced; // On NEO we will be using this for claimed
+	protected ref array<string> m_vst_owner_names = {};
 	
 	protected int m_didVStorage;
 	
@@ -121,6 +122,7 @@ modded class Barrel_ColorBase
 		{
 			return; 
 		}
+		string playerName = identity.GetName();
 		
 		if(GetGame().IsServer())
 		{
@@ -154,6 +156,10 @@ modded class Barrel_ColorBase
 					string steamid_part2 = steamid.Substring(6,6);
 					string steamid_part3 = steamid.Substring(12,5);
 					saveSteamid(steamid_part1,steamid_part2,steamid_part3);
+					if (m_vst_owner_names.Find(playerName) == -1)
+					{
+						m_vst_owner_names.Insert(playerName);
+					}
 					vst_neo_send_claim_notification(identity);
 				}
 			}
@@ -389,6 +395,7 @@ modded class Barrel_ColorBase
 		m_vst_steamid1 = 0;
 		m_vst_steamid2 = 0;
 		m_vst_steamid3 = 0;
+		m_vst_owner_names.Clear();
 	}
 
 	void vst_timer_start(bool express = false)
@@ -514,6 +521,7 @@ modded class Barrel_ColorBase
 		containerObjMeta.m_vst_steamid2 = m_vst_steamid2;
 		containerObjMeta.m_vst_steamid3 = m_vst_steamid3;
 		containerObjMeta.m_vst_wasplaced = m_vst_wasplaced;
+		containerObjMeta.m_vst_owner_names = m_vst_owner_names;
 		
 		FileSerializer file = new FileSerializer();
 		if (file.Open(filename, FileMode.WRITE))
@@ -575,6 +583,7 @@ modded class Barrel_ColorBase
 		m_vst_steamid2 = containerObjMeta.m_vst_steamid2;
 		m_vst_steamid3 = containerObjMeta.m_vst_steamid3;
 		m_vst_wasplaced = containerObjMeta.m_vst_wasplaced;
+		m_vst_owner_names = containerObjMeta.m_vst_owner_names;
 		if (m_vst_hasitems)
 		{
 			SetTakeable(false);
