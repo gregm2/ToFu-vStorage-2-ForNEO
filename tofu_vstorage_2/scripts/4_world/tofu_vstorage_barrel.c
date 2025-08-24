@@ -122,7 +122,6 @@ modded class Barrel_ColorBase
 		{
 			return; 
 		}
-		string playerName = identity.GetName();
 		
 		if(GetGame().IsServer())
 		{
@@ -146,29 +145,14 @@ modded class Barrel_ColorBase
 				// if the barrel was not empty and was unclaimed, claim it
 				if (!m_vst_wasplaced)
 				{
-					string steamid = identity.GetPlainId();
-					if(g_Game.GetVSTConfig().Get_script_logging() == 1)
-					{
-						Print("[vStorage] player "+steamid+ "claimed barrel "+GetType()+" at pos "+GetPosition());
-					}
-					//string steamid_part1 = "999999";
-					string steamid_part1 = steamid.Substring(0,6);
-					string steamid_part2 = steamid.Substring(6,6);
-					string steamid_part3 = steamid.Substring(12,5);
-					saveSteamid(steamid_part1,steamid_part2,steamid_part3);
-					if (m_vst_owner_names.Find(playerName) == -1)
-					{
-						m_vst_owner_names.Insert(playerName);
-					}
-					vst_neo_send_claim_notification(identity);
+					Claim(identity);
 				}
 			}
 			if (item_count == 0)
 			{
 				if (m_vst_wasplaced)
 				{
-					Unclaim();
-					vst_neo_send_unclaim_notification(identity);
+					Unclaim(identity);
 				}
 			}
 		}
@@ -389,13 +373,44 @@ modded class Barrel_ColorBase
 		return false;
 	}
 	
+	void Claim(PlayerIdentity identity)
+	{
+		if (!identity)
+		{
+			return; 
+		}
+		
+		string playerName = identity.GetName();
+		
+		string steamid = identity.GetPlainId();
+		
+		if(g_Game.GetVSTConfig().Get_script_logging() == 1)
+		{
+			Print("[vStorage] player "+steamid+ "claimed barrel "+GetType()+" at pos "+GetPosition());
+		}
+		//string steamid_part1 = "999999";
+		string steamid_part1 = steamid.Substring(0,6);
+		string steamid_part2 = steamid.Substring(6,6);
+		string steamid_part3 = steamid.Substring(12,5);
+		saveSteamid(steamid_part1,steamid_part2,steamid_part3);
+		if (m_vst_owner_names.Find(playerName) == -1)
+		{
+			m_vst_owner_names.Insert(playerName);
+		}
+		vst_neo_send_claim_notification(identity);
+	}
 	
-	void Unclaim() {
+	void Unclaim(PlayerIdentity identity = null) 
+	{
 		m_vst_wasplaced = false;
 		m_vst_steamid1 = 0;
 		m_vst_steamid2 = 0;
 		m_vst_steamid3 = 0;
 		m_vst_owner_names.Clear();
+		if (identity) // if administratively unlocked via cftools/command ID will be null
+		{
+			vst_neo_send_unclaim_notification(identity);
+		}
 	}
 
 	void vst_timer_start(bool express = false)
