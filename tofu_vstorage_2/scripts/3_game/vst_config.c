@@ -17,6 +17,8 @@ class VST_Config
 	/* added just in-case server-side admin notes can be done */
 	protected bool block_paper_with_writing = true;
 	
+	protected float min_distance_from_spawn_to_lock = 50.0;
+	
 	protected ref array<string> Blacklist;
 	protected ref array<string> Admins;
 
@@ -24,6 +26,11 @@ class VST_Config
 	protected string claim_message_body = "You have claimed this barrel and it will be locked to others when closed. To unclaim this barrel, simply close it when it is empty";
 	protected string claim_message_icon = "set:dayz_inventory image:barrel";
 	protected float claim_message_show_time_secs = 5.0;
+	
+	protected string tooclosetospawn_message_title = "Barrel Can't Be Locked Here";
+	protected string tooclosetospawn_message_body = "Barrels have to be moved before locking, preferrably hidden or in a base";
+	protected string tooclosetospawn_message_icon = "set:dayz_inventory image:barrel";
+	protected float tooclosetospawn_message_show_time_secs = 5.0;
 	
 	protected string unclaim_message_title = "Barrel Unclaimed";
 	protected string unclaim_message_body = "You have unclaimed this barrel and others may now claim it. To reclaim this barrel, simply close it with any item in it";
@@ -119,6 +126,8 @@ class VST_Config
 		
 		block_paper_with_writing = true;
 		
+		min_distance_from_spawn_to_lock = 50.0;
+		
 		Blacklist = new array<string>;
 		Blacklist.Insert("WrittenNote");
 		Blacklist.Insert("VehicleKeyBase");
@@ -146,6 +155,12 @@ class VST_Config
 		claim_message_body = "You have claimed this barrel and it will be locked to others when closed. To unclaim this barrel, simply close it when it is empty";
 		claim_message_icon = "set:dayz_inventory image:barrel";
 		claim_message_show_time_secs = 5.0;
+		
+        tooclosetospawn_message_title = "Barrel Can't Be Locked Here";
+	    tooclosetospawn_message_body = "Barrels have to be moved before locking, preferrably hidden or in a base";
+	    tooclosetospawn_message_icon = "set:dayz_inventory image:barrel";
+	    tooclosetospawn_message_show_time_secs = 5.0;
+
 		
 		unclaim_message_title = "Barrel Unclaimed";
 		unclaim_message_body = "You have unclaimed this barrel and others may now claim it. To reclaim this barrel, simply close it with any item in it";
@@ -237,6 +252,23 @@ class VST_Config
 	{
 		return claim_message_show_time_secs;
 	}
+
+	string Get_tooclosetospawn_message_title()
+	{
+		return tooclosetospawn_message_title;
+	}
+	string Get_tooclosetospawn_message_body()
+	{
+		return tooclosetospawn_message_body;
+	}
+	string Get_tooclosetospawn_message_icon()
+	{
+		return tooclosetospawn_message_icon;
+	}
+	float Get_tooclosetospawn_message_show_time_secs()
+	{
+		return tooclosetospawn_message_show_time_secs;
+	}
 	
 	string Get_unclaim_message_title()
 	{
@@ -319,6 +351,16 @@ class VST_Config
 	bool Get_block_paper_with_writing()
 	{
 		return block_paper_with_writing;
+	}
+	
+	float Get_min_distance_from_spawn_to_lock()
+	{
+		return min_distance_from_spawn_to_lock;
+	}
+	
+	void Set_min_distance_from_spawn_to_lock(float mindistance)
+	{
+		min_distance_from_spawn_to_lock = mindistance;
 	}
 
 	
