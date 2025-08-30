@@ -17,7 +17,7 @@ class VST_Config
 	/* added just in-case server-side admin notes can be done */
 	protected bool block_paper_with_writing = true;
 	
-	protected float min_distance_from_spawn_to_lock = 50.0;
+	protected float min_distance_from_spawn_to_lock = 50.0; // set to 0.0 to disable prevention
 	
 	protected ref array<string> Blacklist;
 	protected ref array<string> Admins;
