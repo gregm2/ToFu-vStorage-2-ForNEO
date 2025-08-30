@@ -383,13 +383,59 @@ modded class Barrel_ColorBase
 		NotificationSystem.SendNotificationToPlayerIdentityExtended(identity, show_time, title, body, icon);
 	}
 	
-	bool canInteract(string steamid)
+	void vst_neo_send_player_message(PlayerIdentity identity, string message)	
+	{
+		Param1<string> Msgparam;
+		Msgparam = new Param1<string>(message);
+		GetGame().RPCSingleParam(identity.GetPlayer(), ERPCs.RPC_USER_ACTION_MESSAGE, Msgparam, true, identity);
+	}
+	
+	void vst_neo_send_five_per_line(PlayerIdentity identity, string premessage, array<string> strarray)
+	{
+		string line = premessage;
+		int index = 0;
+		bool linesent = false;
+		
+		if ((strarray) && (strarray.Count() > 0))
+		{
+			for (index = 0; index < strarray.Count(); ++index)
+			{
+				line += strarray.Get(index);
+				linesent = false;
+				if (((index % 5) != 0) || (index == 0))
+				{
+					line += ", ";
+				}
+				else
+				{
+					vst_neo_send_player_message(identity, line);
+					line = "    ";
+					linesent = true;
+				}
+			}
+			if (!linesent)
+			{
+				vst_neo_send_player_message(identity, line);
+			}
+		}
+	}
+	
+	
+	bool canInteract(PlayerIdentity identity)
 	{
 		//Print(steamid);
 	
 		/*
 		Print(m_vst_wasplaced);
 		*/
+		
+		if (!identity)
+		{
+			Print("[NEO Barrels] canInteract received null identity");
+			return false;
+		}
+		
+		string steamid = identity.GetPlainId();
 		
 		if(m_vst_wasplaced == false) {
 			return true;
@@ -415,8 +461,16 @@ modded class Barrel_ColorBase
 		return false;
 	}
 	
-	bool canInteractAdmin(string steamid)
+	bool canInteractAdmin(PlayerIdentity identity)
 	{
+		if (!identity)
+		{
+			Print("[NEO Barrels] canInteract received null identity");
+			return false;
+		}
+		
+		string steamid = identity.GetPlainId();
+		
 		array<int> Admins_Hashes = g_Game.GetVSTConfig().Get_Admin_Hashes();
 		
 		if (Admins_Hashes)
@@ -431,8 +485,16 @@ modded class Barrel_ColorBase
 		
 		for (int i = 0; i < Admins_List.Count(); i++)
         {
-			if(steamid == Admins_List.Get(i))
+			if(Admins_List.Find(steamid) != -1)
+			{
+				if (g_Game.GetVSTConfig().Get_display_owners_to_admins())
+				{
+					vst_neo_send_five_per_line(identity, "Owner names: ", m_vst_owner_names);
+					vst_neo_send_five_per_line(identity, "Owner IDs: ", m_vst_owner_steamids);
+				}
 				return true;
+			}
+
 		}
 		
 		return false;
@@ -777,8 +839,7 @@ modded class Barrel_ColorBase
 		}
 		if (pi)
 		{
-			string steamid = pi.GetPlainId();
-			if (canInteract(steamid) || canInteractAdmin(steamid))
+			if (canInteract(pi) || canInteractAdmin(pi))
 			{
 				return true;
 			}

@@ -6,8 +6,19 @@ class VST_Config
 	
 	protected int script_logging = 0;
 	
+	protected bool display_owners_to_admins = true;
+	
 	protected int auto_close_random_seconds_min = 120;
 	protected int auto_close_random_seconds_max = 240;
+
+	protected int notification_cooldown_secs = 10;
+	protected int action_cooldown_secs = 5;
+	
+	/* added just in-case server-side admin notes can be done */
+	protected bool block_paper_with_writing = true;
+	
+	protected ref array<string> Blacklist;
+	protected ref array<string> Admins;
 
 	protected string claim_message_title = "Barrel Claimed";
 	protected string claim_message_body = "You have claimed this barrel and it will be locked to others when closed. To unclaim this barrel, simply close it when it is empty";
@@ -34,18 +45,10 @@ class VST_Config
 	protected string blacklist_message_icon = "set:dayz_inventory image:barrel";
 	protected float blacklist_message_show_time_secs = 5.0;
 	
-	protected int notification_cooldown_secs = 10;
-	protected int action_cooldown_secs = 5;
-	
-	/* added just in-case server-side admin notes can be done */
-	protected bool block_paper_with_writing = true;
-	
-	protected ref array<string> Blacklist;
-	protected ref array<string> Admins;
-	
 	[NonSerialized()]
 	protected ref array<int> Admins_hashes = {};
-	
+
+		
 	void VST_Config()
 	{
 		if (GetGame().IsServer())
@@ -105,33 +108,11 @@ class VST_Config
 		
 		script_logging = 0;
         
+		display_owners_to_admins = true;
+		
 		auto_close_random_seconds_min = 120;
 		auto_close_random_seconds_max = 240;
 		
-		claim_message_title = "Barrel Claimed";
-		claim_message_body = "You have claimed this barrel and it will be locked to others when closed. To unclaim this barrel, simply close it when it is empty";
-		claim_message_icon = "set:dayz_inventory image:barrel";
-		claim_message_show_time_secs = 5.0;
-		
-		unclaim_message_title = "Barrel Unclaimed";
-		unclaim_message_body = "You have unclaimed this barrel and others may now claim it. To reclaim this barrel, simply close it with any item in it";
-		unclaim_message_icon = "set:dayz_inventory image:barrel";
-		unclaim_message_show_time_secs = 5.0;
-	
-		locked_message_title = "Barrel Locked";
-		locked_message_body = "Another player has claimed this barrel and it is locked, preventing other others from opening it or damaging it";
-		locked_message_icon = "set:dayz_inventory image:barrel";
-		locked_message_show_time_secs = 5.0;
-	
-		cooldown_message_title = "Barrel cooldown";
-		cooldown_message_body = "Please be patient while contents are saved/restored, then you may interact with the barrel";
-		cooldown_message_icon = "set:dayz_inventory image:barrel";
-		cooldown_message_show_time_secs = 5.0;
-
-		blacklist_message_title = "Invalid item for virtual storage";
-		blacklist_message_body = "The item you have placed in the barrel is incompatible with virtual storage and has been ejected. Look for it in vicinity view";
-		blacklist_message_icon = "set:dayz_inventory image:barrel";
-		blacklist_message_show_time_secs = 5.0;
 				
 		notification_cooldown_secs = 10;
 		action_cooldown_secs = 5;
@@ -160,6 +141,32 @@ class VST_Config
 		
 		Admins = new array<string>;
 		Admins.Insert("12345678901234567");
+		
+		claim_message_title = "Barrel Claimed";
+		claim_message_body = "You have claimed this barrel and it will be locked to others when closed. To unclaim this barrel, simply close it when it is empty";
+		claim_message_icon = "set:dayz_inventory image:barrel";
+		claim_message_show_time_secs = 5.0;
+		
+		unclaim_message_title = "Barrel Unclaimed";
+		unclaim_message_body = "You have unclaimed this barrel and others may now claim it. To reclaim this barrel, simply close it with any item in it";
+		unclaim_message_icon = "set:dayz_inventory image:barrel";
+		unclaim_message_show_time_secs = 5.0;
+	
+		locked_message_title = "Barrel Locked";
+		locked_message_body = "Another player has claimed this barrel and it is locked, preventing other others from opening it or damaging it";
+		locked_message_icon = "set:dayz_inventory image:barrel";
+		locked_message_show_time_secs = 5.0;
+	
+		cooldown_message_title = "Barrel cooldown";
+		cooldown_message_body = "Please be patient while contents are saved/restored, then you may interact with the barrel";
+		cooldown_message_icon = "set:dayz_inventory image:barrel";
+		cooldown_message_show_time_secs = 5.0;
+
+		blacklist_message_title = "Invalid item for virtual storage";
+		blacklist_message_body = "The item you have placed in the barrel is incompatible with virtual storage and has been ejected. Look for it in vicinity view";
+		blacklist_message_icon = "set:dayz_inventory image:barrel";
+		blacklist_message_show_time_secs = 5.0;
+
 		Save(); // UpdateAdminHashes call will happen here
 	}
 
@@ -181,6 +188,16 @@ class VST_Config
 	int Get_script_logging()
 	{
 		return script_logging;
+	}
+	
+	bool Get_display_owners_to_admins()
+	{
+		return display_owners_to_admins;
+	}
+	
+	void Set_display_owners_to_admins(bool displayOwners)
+	{
+		display_owners_to_admins = displayOwners;
 	}
 	
 	int Get_auto_close_random_seconds_min()
