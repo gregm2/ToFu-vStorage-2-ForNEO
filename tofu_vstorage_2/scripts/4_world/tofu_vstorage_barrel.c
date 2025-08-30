@@ -7,6 +7,7 @@ modded class Barrel_ColorBase
 	protected bool m_vst_hasitems;
 	protected bool m_vst_wasplaced; // On NEO we will be using this for claimed
 	protected bool m_vst_metadata_updated; // flag to indicate if metadata has been updated since last save
+	protected vector m_vst_ce_spawn_position;
 	protected ref array<string> m_vst_owner_names = {};
 	protected ref array<string> m_vst_owner_steamids = {}; // may not match order of names
 	protected ref array<int> m_vst_owner_steamid_hashes = {}; // do not store as metadata, re-generate whenver steamid array updates
@@ -40,6 +41,8 @@ modded class Barrel_ColorBase
 		m_vst_neo_last_action_time = 0.0;
 		
 		m_vst_neo_is_restoring = false;
+		
+		m_vst_ce_spawn_position = vector.Zero;
 		
 		if(GetGame().IsDedicatedServer())
 		{
@@ -363,6 +366,26 @@ modded class Barrel_ColorBase
 		NotificationSystem.SendNotificationToPlayerIdentityExtended(identity, show_time, title, body, icon);
 	}
 	
+	void vst_neo_send_tooclosetospawn_notification(PlayerIdentity identity)
+	{
+		if (!vst_neo_notify_cooldown_expired())
+		{
+			return; /* don't flood messages */
+		}
+		
+		if (!identity)
+		{
+			return; /* can't pass NULL here */
+		}
+		
+		string title = g_Game.GetVSTConfig().Get_tooclosetospawn_message_title();
+		string body = g_Game.GetVSTConfig().Get_tooclosetospawn_message_body();
+		string icon = g_Game.GetVSTConfig().Get_tooclosetospawn_message_icon();
+		float show_time = g_Game.GetVSTConfig().Get_tooclosetospawn_message_show_time_secs();
+		
+		NotificationSystem.SendNotificationToPlayerIdentityExtended(identity, show_time, title, body, icon);
+	}
+	
 	void vst_neo_send_unclaim_notification(PlayerIdentity identity)
 	{
 		if (!vst_neo_notify_cooldown_expired())
@@ -507,6 +530,16 @@ modded class Barrel_ColorBase
 			return; 
 		}
 		
+		float mindist = g_Game.GetVSTConfig().Get_min_distance_from_spawn_to_lock();
+		if ((mindist != 0.0) && (m_vst_ce_spawn_position != vector.Zero))
+		{
+			mindist = mindist * mindist; // now squared
+			if (vector.DistanceSq(GetPosition(), m_vst_ce_spawn_position) < mindist)
+			{
+				vst_neo_send_tooclosetospawn_notification(identity);
+				return;
+			}
+		}
 		string playerName = identity.GetName();
 		
 		string steamid = identity.GetPlainId();
@@ -847,6 +880,16 @@ modded class Barrel_ColorBase
 		}
 		
 		return false;
+	}
+	
+	override void EEOnCECreate()
+	{
+		super.EEOnCECreate();
+		if (m_vst_ce_spawn_position != vector.Zero)
+		{
+			Print("[NEO BARRELS] WARNING: got EEOnCECreate twice at " + GetPosition());
+		}
+		m_vst_ce_spawn_position = GetPosition();
 	}
 
 	override void SetTakeable(bool pState)
