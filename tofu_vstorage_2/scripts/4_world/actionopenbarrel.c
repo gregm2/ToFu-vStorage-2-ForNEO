@@ -25,7 +25,7 @@ modded class ActionOpenBarrel
 		
 		if( ntarget )
 		{
-			if (ntarget.canInteract(steamID) || ntarget.canInteractAdmin(steamID))
+			if (ntarget.canInteract(playerID) || ntarget.canInteractAdmin(playerID))
 			{
 				if (ntarget.vst_neo_check_cooldown_and_notify(playerID))
 				{
