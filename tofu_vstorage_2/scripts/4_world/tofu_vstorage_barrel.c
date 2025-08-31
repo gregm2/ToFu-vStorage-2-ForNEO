@@ -88,6 +88,74 @@ modded class Barrel_ColorBase
 		//GetGame().GetCallQueue(CALL_CATEGORY_SYSTEM).Remove(vst_neo_throwout_blacklist_item);
 	}
 	
+	static int vst_neo_unlock_all()
+	{
+		int count = 0;
+		
+		if ((s_vst_neo_barrel_array) && (s_vst_neo_barrel_array.Count() > 0))
+		{
+			foreach (Barrel_ColorBase barrel: s_vst_neo_barrel_array)
+			{
+				if(!barrel) 
+				{
+					Print("[NEO Barrels] had null barrel in list");
+					continue;					
+				}
+				
+				if (barrel.m_vst_wasplaced)
+				{
+					barrel.Unclaim();
+					++count;
+				}
+			}
+		}
+		return count;
+	}
+	
+	static int vst_neo_unlock_in_radius(vector position, float radius)
+	{
+		int count = 0;
+		vector checkposition;
+		checkposition[0] = position[0];
+		checkposition[1] = 0;
+		checkposition[2] = position[2];
+		
+		if ((s_vst_neo_barrel_array) && (s_vst_neo_barrel_array.Count() > 0))
+		{
+			foreach (Barrel_ColorBase barrel: s_vst_neo_barrel_array)
+			{
+				if(!barrel) 
+				{
+					Print("[NEO Barrels] had null barrel in list");
+					continue;					
+				}
+				
+				radius = radius * radius;
+				vector barrelpos;
+				vector barrel3dpos = barrel.GetPosition();
+				barrelpos[0] = barrel3dpos[0];
+				barrelpos[1] = 0;
+				barrelpos[2] = barrel3dpos[2];
+				
+				if (vector.DistanceSq(checkposition, barrelpos) < radius)
+				{
+					if (barrel.m_vst_wasplaced)
+					{
+						barrel.Unclaim();
+						++count;
+					}
+				}
+			}
+		}
+		return count;
+	}
+	
+	static void vst_neo_send_player_message(PlayerIdentity identity, string message)	
+	{
+		Param1<string> Msgparam;
+		Msgparam = new Param1<string>(message);
+		GetGame().RPCSingleParam(identity.GetPlayer(), ERPCs.RPC_USER_ACTION_MESSAGE, Msgparam, true, identity);
+	}
 	
 	string vst_neo_get_express_filename(string steamid)
 	{
@@ -500,13 +568,7 @@ modded class Barrel_ColorBase
 		NotificationSystem.SendNotificationToPlayerIdentityExtended(identity, show_time, title, body, icon);
 	}
 	
-	void vst_neo_send_player_message(PlayerIdentity identity, string message)	
-	{
-		Param1<string> Msgparam;
-		Msgparam = new Param1<string>(message);
-		GetGame().RPCSingleParam(identity.GetPlayer(), ERPCs.RPC_USER_ACTION_MESSAGE, Msgparam, true, identity);
-	}
-	
+
 	void vst_neo_send_five_per_line(PlayerIdentity identity, string premessage, array<string> strarray)
 	{
 		string line = premessage;
@@ -588,32 +650,15 @@ modded class Barrel_ColorBase
 		
 		string steamid = identity.GetPlainId();
 		
-		array<int> Admins_Hashes = g_Game.GetVSTConfig().Get_Admin_Hashes();
-		
-		if (Admins_Hashes)
+		if (g_Game.GetVSTConfig().isAdmin(steamid))
 		{
-			int hash = steamid.Hash();
-			if (Admins_Hashes && (Admins_Hashes.Count() > 0) && (Admins_Hashes.Find(hash) == -1))
+			if ((allow_owner_display) && (g_Game.GetVSTConfig().Get_display_owners_to_admins()))
 			{
-				return false;
+				vst_neo_send_five_per_line(identity, "Owner names: ", m_vst_owner_names);
+				vst_neo_send_five_per_line(identity, "Owner IDs: ", m_vst_owner_steamids);
 			}
+			return true;
 		}
-		array<string> Admins_List = g_Game.GetVSTConfig().Get_Admins();
-		
-		for (int i = 0; i < Admins_List.Count(); i++)
-        {
-			if(Admins_List.Find(steamid) != -1)
-			{
-				if ((allow_owner_display) && (g_Game.GetVSTConfig().Get_display_owners_to_admins()))
-				{
-					vst_neo_send_five_per_line(identity, "Owner names: ", m_vst_owner_names);
-					vst_neo_send_five_per_line(identity, "Owner IDs: ", m_vst_owner_steamids);
-				}
-				return true;
-			}
-
-		}
-		
 		return false;
 	}
 	
@@ -723,6 +768,7 @@ modded class Barrel_ColorBase
 		{
 			vst_neo_send_unclaim_notification(identity);
 		}
+		m_vst_metadata_updated = true;
 		vst_neo_save_metadata();
 	}
 

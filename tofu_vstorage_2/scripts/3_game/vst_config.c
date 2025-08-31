@@ -104,7 +104,30 @@ class VST_Config
 			}
 		}
 	}
-	
+
+		
+	bool isAdmin(string steamid)
+	{
+		if ((Admins) && (Admins_hashes) && (Admins_hashes.Count() > 0))
+		{
+			int hash = steamid.Hash();
+			if (Admins_hashes.Find(hash) == -1)
+			{
+				return false;
+			}
+			
+			if(Admins.Find(steamid) == -1)
+			{
+				return false;
+			}
+			
+			return true;
+		}
+		
+		Print("[NEO Barrels] admin check could not find admin list or hashes");
+		return false;
+	}
+
 	
 	void Load()
     {
