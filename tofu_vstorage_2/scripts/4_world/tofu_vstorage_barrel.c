@@ -29,6 +29,8 @@ modded class Barrel_ColorBase
 
 	protected string m_vst_neo_typename;
 	
+	protected ref Timer m_vst_neo_autoclose_timer;
+	
 	void Barrel_ColorBase()
 	{
 		// True dolphin array trick from above:
@@ -70,6 +72,11 @@ modded class Barrel_ColorBase
 	
 	void ~Barrel_ColorBase()
 	{
+		if (m_vst_neo_autoclose_timer)
+		{
+			m_vst_neo_autoclose_timer.Stop();
+		}
+		
 		if (s_vst_neo_barrel_array) 
 		{
 			s_vst_neo_barrel_array.RemoveItem(this);
@@ -786,21 +793,32 @@ modded class Barrel_ColorBase
 
 	void vst_timer_start(bool express = false)
 	{
-		if(!(m_auto_close_random_seconds_min > 0 && m_auto_close_random_seconds_max > 0 && m_auto_close_random_seconds_min < m_auto_close_random_seconds_max))
-			return;
 
+		if(!((m_auto_close_random_seconds_min > 0) && (m_auto_close_random_seconds_max > m_auto_close_random_seconds_min)))
+			return;
+			
 		if(IsOpen())
 		{
+			if ((m_vst_neo_autoclose_timer) && (m_vst_neo_autoclose_timer.IsRunning()))
+			{
+				return; // already running
+			}
+			
 			int autoclose_timer;
 			if(express)
 			{
-				autoclose_timer = 20*1000;
+				autoclose_timer = 20;
 			}
 			else
 			{
-				autoclose_timer = Math.RandomInt(m_auto_close_random_seconds_min, m_auto_close_random_seconds_max)*1000;
+				autoclose_timer = Math.RandomInt(m_auto_close_random_seconds_min, m_auto_close_random_seconds_max);
 			}
 			//GetGame().GetCallQueue(CALL_CATEGORY_SYSTEM).CallLater(vst_timer_end, autoclose_timer, false);
+			if (!m_vst_neo_autoclose_timer)
+			{
+				m_vst_neo_autoclose_timer = new Timer();
+			}
+			m_vst_neo_autoclose_timer.Run(autoclose_timer, this, "vst_timer_end", null, false);
 			if(g_Game.GetVSTConfig().Get_script_logging() == 1)
 				Print("[vStorage] Starting " + autoclose_timer +" ms autoclose timer for " + GetType() + " at Position " +GetPosition() );
 		}
@@ -897,6 +915,7 @@ modded class Barrel_ColorBase
 	{
 		super.AfterStoreLoad();
 		vst_neo_load_metadata();
+		vst_timer_start();
 	}
 	
 	
@@ -1086,6 +1105,8 @@ modded class Barrel_ColorBase
 			Print("[NEO BARRELS] WARNING: got EEOnCECreate twice at " + GetPosition());
 		}
 		m_vst_ce_spawn_position = GetPosition();
+		m_vst_metadata_updated = true;
+		vst_neo_save_metadata();
 	}
 
 	override void SetTakeable(bool pState)
