@@ -22,6 +22,8 @@ class VST_Config
 	
 	protected bool only_lock_if_in_flag_range = false;
 	
+	protected int minimum_items_to_lock = 1;
+	
 	protected ref array<string> Blacklist;
 	protected ref array<string> Admins;
 	protected ref array<string> LockableTypes;
@@ -171,7 +173,9 @@ class VST_Config
 		disable_barrel_protection = false;
 		
 		only_lock_if_in_flag_range = false;
-		
+	
+		minimum_items_to_lock = 1;
+			
 		Blacklist = new array<string>;
 		Blacklist.Insert("WrittenNote");
 		Blacklist.Insert("VehicleKeyBase");
@@ -462,5 +466,15 @@ class VST_Config
 	void Set_only_lock_if_in_flag_range(bool requireflag)
 	{
 		only_lock_if_in_flag_range = requireflag;
+	}
+	
+	int Get_minimum_items_to_lock()
+	{
+		return minimum_items_to_lock;
+	}
+	
+	void Set_minimum_items_to_lcok(int minitems)
+	{
+		minimum_items_to_lock = minitems;
 	}
 };
