@@ -24,7 +24,7 @@ class tofuvStorageObj
 	autoptr array<string> itemMagInhalt = {};
 	
 	string itemEECreatureType = "";
-	string itemUnusedString2 = "";
+	string itemPprNoteData = "";
 	string itemUnusedString3 = "";
 	string itemUnusedString4 = "";
 	string itemUnusedString5 = "";
@@ -40,7 +40,7 @@ class tofuvStorageObj
 	bool itemHasEnergy = false;
 	bool itemEEDangerSound = false; // easter egg danger sound flag
 	bool itemEEIsEgg = false; // flag for faster easter egg detection on load
-	bool itemUnusedBool4 = false;
+	bool itemPprIsPaper = false;
 	bool itemUnusedBool5 = false;
 	bool itemUnusedBool6 = false;
 	
