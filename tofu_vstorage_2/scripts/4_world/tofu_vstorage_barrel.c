@@ -7,6 +7,8 @@ modded class Barrel_ColorBase
 	static ref map <string, int> s_vst_neo_user_barrel_count;
 	protected bool m_vst_neo_owners_counted_from_load = false;
 	
+	static ref array <PlayerIdentity> s_vst_neo_barrel_sharers;
+	
 	protected bool m_vst_hasitems;
 	protected bool m_vst_wasplaced; // On NEO we will be using this for claimed
 	protected bool m_vst_metadata_updated; // flag to indicate if metadata has been updated since last save
@@ -30,6 +32,8 @@ modded class Barrel_ColorBase
 	protected string m_vst_neo_typename;
 	
 	protected ref Timer m_vst_neo_autoclose_timer;
+	
+	protected PlayerIdentity m_vst_neo_sharerID;
 	
 	void Barrel_ColorBase()
 	{
@@ -157,6 +161,18 @@ modded class Barrel_ColorBase
 			}
 		}
 		return count;
+	}
+	
+	static void vst_neo_share_barrel(PlayerIdentity sharer)
+	{
+		if (!s_vst_neo_barrel_sharers)
+		{
+			s_vst_neo_barrel_sharers = new array<PlayerIdentity>;
+		}
+		if (s_vst_neo_barrel_sharers.Find(sharer) == -1)
+		{
+			s_vst_neo_barrel_sharers.Insert(sharer);
+		}
 	}
 	
 	static void vst_neo_send_player_message(PlayerIdentity identity, string message)	
@@ -317,7 +333,7 @@ modded class Barrel_ColorBase
 			if (item_count > 0)
 			{
 				// if the barrel was not empty and was unclaimed, claim it
-				if (!m_vst_wasplaced)
+				if ((!m_vst_wasplaced) || (m_vst_neo_sharerID))
 				{
 					Claim(identity);
 				}
@@ -608,6 +624,38 @@ modded class Barrel_ColorBase
 		}
 	}
 	
+	bool canShare()
+	{
+		if (s_vst_neo_barrel_sharers)
+		{
+			// each pass, try and remove an ID of a player who may have logged out while on list
+			int index = 0;
+			PlayerIdentity nullcheck;
+			for (index = 0; index < s_vst_neo_barrel_sharers.Count(); index++)
+			{
+				nullcheck = s_vst_neo_barrel_sharers.Get(index);
+				if (!nullcheck)
+				{
+					s_vst_neo_barrel_sharers.Remove(index);
+					break; // array changed, don't keep going over it
+				}
+			}
+			
+			foreach(PlayerIdentity id: s_vst_neo_barrel_sharers)
+			{
+				if (id)
+				{
+					if (canInteract(id))
+					{
+						s_vst_neo_barrel_sharers.RemoveItem(id);
+						m_vst_neo_sharerID = id;
+						return true; // no break needed due to return
+					}
+				}
+			}
+		}
+		return false;
+	}
 	
 	bool canInteract(PlayerIdentity identity)
 	{
@@ -759,6 +807,12 @@ modded class Barrel_ColorBase
 			return; 
 		}
 		
+		if ((m_vst_neo_sharerID) && (m_vst_neo_sharerID == identity))
+		{
+			vst_neo_send_player_message(identity, "barrel share disabled");
+			m_vst_neo_sharerID = null;
+		}
+		
 		// if protections are disabled don't allow claiming
 		if ((isProtectionDisabled()) || (!isLockable()))
 		{
@@ -835,6 +889,13 @@ modded class Barrel_ColorBase
 		}
 		
 		vst_neo_send_claim_notification(identity);
+		
+		if (m_vst_neo_sharerID)
+		{
+			vst_neo_send_five_per_line(identity, "Updated Owners: ", m_vst_owner_names);
+			vst_neo_send_five_per_line(m_vst_neo_sharerID, "Updated Owners: ", m_vst_owner_names);
+			m_vst_neo_sharerID = null;
+		}
 	}
 	
 	void Unclaim(PlayerIdentity identity = null) 
@@ -2047,4 +2108,5 @@ modded class EasterEgg
 		m_ReleaseSoundHash = hash;
 	}
 }
+
 

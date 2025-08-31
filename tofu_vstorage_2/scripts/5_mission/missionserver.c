@@ -5,7 +5,8 @@ modded class MissionServer
 {
 	const string VST_NEO_BARREL_UNLOCK_RADIUS_CMD = "/barrel_unlockradius";
 	const string VST_NEO_BARREL_UNLOCK_ALL_CMD = "/barrel_unlockall";
-	
+	const string VST_NEO_BARREL_SHARE_CMD = "/barrel_share";
+		
 	ref VST_Config m_VST_Config;
 	
 	ref array<int> m_vst_neo_barrel_command_hashes;
@@ -15,6 +16,7 @@ modded class MissionServer
 		m_vst_neo_barrel_command_hashes = new array<int>;
 		m_vst_neo_barrel_command_hashes.Insert(VST_NEO_BARREL_UNLOCK_RADIUS_CMD.Hash());
 		m_vst_neo_barrel_command_hashes.Insert(VST_NEO_BARREL_UNLOCK_ALL_CMD.Hash());
+		m_vst_neo_barrel_command_hashes.Insert(VST_NEO_BARREL_SHARE_CMD.Hash());
 	}
 	
 	override void OnInit()
@@ -133,6 +135,25 @@ modded class MissionServer
 		}			
 	}
 	
+	void vst_neo_barrel_share_cmd(PlayerIdentity identity)
+	{
+		if (!identity)
+		{
+			return;
+		}
+		string message = "Barrel sharing enabled, next person to close your barrel will be added to the owners list";
+		Barrel_ColorBase.vst_neo_share_barrel(identity);
+		Barrel_ColorBase.vst_neo_send_player_message(identity, message);	
+	}
+	
+	void vst_neo_barrel_share_help(PlayerIdentity identity)
+	{
+		string response = "Usage: " + VST_NEO_BARREL_SHARE_CMD;
+		Barrel_ColorBase.vst_neo_send_player_message(identity, response);
+		response = "  allows you to share a barrel by having the other player close it while open";
+		Barrel_ColorBase.vst_neo_send_player_message(identity, response);
+	}
+	
 	void vst_neo_barrel_handle_command(string name, string message)
 	{
 		PlayerIdentity identity;
@@ -168,6 +189,7 @@ modded class MissionServer
 							vst_neo_barrel_unlockradius_help(identity);
 						}						
 						break;
+					
 					case VST_NEO_BARREL_UNLOCK_ALL_CMD:
 						if (strs.Count() > 1)
 						{
@@ -180,6 +202,10 @@ modded class MissionServer
 						{
 							vst_neo_barrel_unlockall_help(identity);
 						}						
+						break;
+					
+					case VST_NEO_BARREL_SHARE_CMD:
+						vst_neo_barrel_share_cmd(identity);
 						break;
 				}
 			}
