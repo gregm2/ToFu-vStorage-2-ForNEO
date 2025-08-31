@@ -578,7 +578,7 @@ modded class Barrel_ColorBase
 		return false;
 	}
 	
-	bool canInteractAdmin(PlayerIdentity identity)
+	bool canInteractAdmin(PlayerIdentity identity, bool allow_owner_display = true)
 	{
 		if (!identity)
 		{
@@ -604,7 +604,7 @@ modded class Barrel_ColorBase
         {
 			if(Admins_List.Find(steamid) != -1)
 			{
-				if (g_Game.GetVSTConfig().Get_display_owners_to_admins())
+				if ((allow_owner_display) && (g_Game.GetVSTConfig().Get_display_owners_to_admins()))
 				{
 					vst_neo_send_five_per_line(identity, "Owner names: ", m_vst_owner_names);
 					vst_neo_send_five_per_line(identity, "Owner IDs: ", m_vst_owner_steamids);
@@ -617,11 +617,22 @@ modded class Barrel_ColorBase
 		return false;
 	}
 	
+	bool isProtectionDisabled()
+	{
+		return g_Game.GetVSTConfig().Get_disable_barrel_protection();
+	}
+	
 	void Claim(PlayerIdentity identity)
 	{
 		if (!identity)
 		{
 			return; 
+		}
+		
+		// if protections are disabled don't allow claiming
+		if (isProtectionDisabled())
+		{
+			return;
 		}
 		
 		float mindist = g_Game.GetVSTConfig().Get_min_distance_from_spawn_to_lock();
@@ -982,7 +993,12 @@ modded class Barrel_ColorBase
 	{
 		if (!m_vst_wasplaced)
 		{
-			return true;
+			return super.EEOnDamageCalculated(damageResult, damageType, source, component, dmgZone, ammo, modelPos, speedCoef);
+		}
+		
+		if (isProtectionDisabled())
+		{
+			return super.EEOnDamageCalculated(damageResult, damageType, source, component, dmgZone, ammo, modelPos, speedCoef);
 		}
 		
 		PlayerBase playerSource;
@@ -994,9 +1010,9 @@ modded class Barrel_ColorBase
 		}
 		if (pi)
 		{
-			if (canInteract(pi) || canInteractAdmin(pi))
+			if (canInteract(pi) || canInteractAdmin(pi, false))
 			{
-				return true;
+				return super.EEOnDamageCalculated(damageResult, damageType, source, component, dmgZone, ammo, modelPos, speedCoef);
 			}
 			vst_neo_send_locked_notification(pi);
 		}

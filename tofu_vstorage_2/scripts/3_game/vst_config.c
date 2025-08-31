@@ -21,6 +21,8 @@ class VST_Config
 	
 	protected int max_barrels_per_player = 0; // set to 0 to not limit
 	
+	protected bool disable_barrel_protection = false;
+	
 	protected ref array<string> Blacklist;
 	protected ref array<string> Admins;
 
@@ -136,6 +138,8 @@ class VST_Config
 		min_distance_from_spawn_to_lock = 50.0;
 		
 		max_barrels_per_player = 0;
+		
+		disable_barrel_protection = false;
 		
 		Blacklist = new array<string>;
 		Blacklist.Insert("WrittenNote");
@@ -403,5 +407,14 @@ class VST_Config
 		max_barrels_per_player = newmaxbarrels;
 	}
 
+	bool Get_disable_barrel_protection()
+	{
+		return disable_barrel_protection;
+	}
+	
+	void Set_disable_barrel_protection(bool disable)
+	{
+		disable_barrel_protection = disable;
+	}
 	
 };
