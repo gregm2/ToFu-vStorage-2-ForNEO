@@ -1,8 +1,11 @@
 
-
-
 modded class Barrel_ColorBase
 {
+	// thanks to TrueDolphin for this little trick: https://github.com/TrueDolphin/references/blob/main/other/class-nearby.c#L6
+	static ref array <Barrel_ColorBase> s_vst_neo_barrel_array;
+	
+	static ref map <string, int> s_vst_neo_user_barrel_count;
+	protected bool m_vst_neo_owners_counted_from_load = false;
 	
 	protected bool m_vst_hasitems;
 	protected bool m_vst_wasplaced; // On NEO we will be using this for claimed
@@ -27,6 +30,13 @@ modded class Barrel_ColorBase
 
 	void Barrel_ColorBase()
 	{
+		// True dolphin array trick from above:
+		if (!s_vst_neo_barrel_array)
+		{
+			s_vst_neo_barrel_array = {};
+		}
+		s_vst_neo_barrel_array.Insert(this);
+	    
 		// constructors should not require 'super' calls
 		m_vst_wasplaced = false;
 		
@@ -44,6 +54,8 @@ modded class Barrel_ColorBase
 		
 		m_vst_ce_spawn_position = vector.Zero;
 		
+		m_vst_neo_owners_counted_from_load = false;
+		
 		if(GetGame().IsDedicatedServer())
 		{
 			if(g_Game.GetVSTConfig().Get_script_logging() == 1)
@@ -56,6 +68,21 @@ modded class Barrel_ColorBase
 	
 	void ~Barrel_ColorBase()
 	{
+		if (s_vst_neo_barrel_array) 
+		{
+			s_vst_neo_barrel_array.RemoveItem(this);
+		}
+		
+		if (s_vst_neo_user_barrel_count)
+		{
+			if ((m_vst_owner_steamids) && (m_vst_owner_steamids.Count() > 0))
+			{
+				foreach(string steamid: m_vst_owner_steamids)
+				{
+					vst_neo_subtract_barrel_user_count(steamid);
+				}
+			}
+		}
 		//GetGame().GetCallQueue(CALL_CATEGORY_SYSTEM).Remove(vst_timer_start);
 		//GetGame().GetCallQueue(CALL_CATEGORY_SYSTEM).Remove(vst_timer_end);
 		//GetGame().GetCallQueue(CALL_CATEGORY_SYSTEM).Remove(vst_neo_throwout_blacklist_item);
@@ -170,7 +197,14 @@ modded class Barrel_ColorBase
 				{
 					m_vst_owner_steamid_hashes.Insert(steamid_hash);
 				}
+				
+				// update barrel count
+				if (!m_vst_neo_owners_counted_from_load)
+				{
+					vst_neo_add_barrel_user_count(steamid);
+				}
 			}
+			m_vst_neo_owners_counted_from_load = true; // don't repeat owner loading
 		}
 		if (m_vst_hasitems)
 		{
@@ -218,6 +252,46 @@ modded class Barrel_ColorBase
 					Unclaim(identity);
 				}
 			}
+		}
+	}
+	
+	void vst_neo_add_barrel_user_count(string steamid)
+	{
+		if (!s_vst_neo_user_barrel_count)
+		{
+			s_vst_neo_user_barrel_count = new map<string, int>;
+		}
+		
+		int count;
+		
+		if (s_vst_neo_user_barrel_count.Find(steamid, count))
+		{
+			++count;
+			s_vst_neo_user_barrel_count.Set(steamid, count);
+		}
+		else
+		{
+			s_vst_neo_user_barrel_count.Insert(steamid, 1);
+		}
+	}
+	
+	void vst_neo_subtract_barrel_user_count(string steamid)
+	{
+		if (!s_vst_neo_user_barrel_count)
+		{
+			return; // no mapping to subtract from
+		}
+		
+		int count;
+		
+		if (s_vst_neo_user_barrel_count.Find(steamid, count))
+		{
+			--count;
+			s_vst_neo_user_barrel_count.Set(steamid, count);
+		}
+		else
+		{
+			Print("[NEO Barrels] vst_neo_subtract_barrel_user_count called with steam id not in table " + steamid);
 		}
 	}
 	
@@ -386,6 +460,26 @@ modded class Barrel_ColorBase
 		NotificationSystem.SendNotificationToPlayerIdentityExtended(identity, show_time, title, body, icon);
 	}
 	
+	void vst_neo_send_toomanylocked_notification(PlayerIdentity identity)
+	{
+		if (!vst_neo_notify_cooldown_expired())
+		{
+			return; /* don't flood messages */
+		}
+		
+		if (!identity)
+		{
+			return; /* can't pass NULL here */
+		}
+		
+		string title = g_Game.GetVSTConfig().Get_toomanylocked_message_title();
+		string body = g_Game.GetVSTConfig().Get_toomanylocked_message_body();
+		string icon = g_Game.GetVSTConfig().Get_toomanylocked_message_icon();
+		float show_time = g_Game.GetVSTConfig().Get_toomanylocked_message_show_time_secs();
+		
+		NotificationSystem.SendNotificationToPlayerIdentityExtended(identity, show_time, title, body, icon);
+	}
+	
 	void vst_neo_send_unclaim_notification(PlayerIdentity identity)
 	{
 		if (!vst_neo_notify_cooldown_expired())
@@ -539,10 +633,30 @@ modded class Barrel_ColorBase
 				vst_neo_send_tooclosetospawn_notification(identity);
 				return;
 			}
+
 		}
+		
+		// is player trying to lock too many barrels (if limit is <=0, then no limit)
+		string steamid = identity.GetPlainId();		
+		int max_claims = g_Game.GetVSTConfig().Get_max_barrels_per_player();
+		if (max_claims > 0)
+		{
+			if (s_vst_neo_user_barrel_count)
+			{
+				int currentcount = 0;
+				if (s_vst_neo_user_barrel_count.Find(steamid, currentcount))
+				{
+					if (currentcount >= max_claims)
+					{
+						vst_neo_send_toomanylocked_notification(identity);
+						return;
+					}
+				}
+			}
+		}
+		
 		string playerName = identity.GetName();
 		
-		string steamid = identity.GetPlainId();
 		int steamid_hash = steamid.Hash();
 		
 		if(g_Game.GetVSTConfig().Get_script_logging() == 1)
@@ -560,6 +674,8 @@ modded class Barrel_ColorBase
 		{
 			m_vst_owner_steamids.Insert(steamid);
 			m_vst_metadata_updated = true;
+			
+			vst_neo_add_barrel_user_count(steamid);
 		}
 		
 		if (m_vst_owner_steamid_hashes.Find(steamid_hash) == -1)
@@ -568,8 +684,8 @@ modded class Barrel_ColorBase
 		}
 		if (!m_vst_wasplaced)
 		{
-			m_vst_metadata_updated = true;
 			m_vst_wasplaced = true;
+			m_vst_metadata_updated = true;
 		}
 
 		if (m_vst_metadata_updated)
@@ -584,6 +700,12 @@ modded class Barrel_ColorBase
 	{
 		m_vst_wasplaced = false;
 		m_vst_owner_names.Clear();
+		
+		foreach (string steamid: m_vst_owner_steamids)
+		{
+			vst_neo_subtract_barrel_user_count(steamid);
+		}
+		
 		m_vst_owner_steamids.Clear();
 		m_vst_owner_steamid_hashes.Clear();
 		if (identity) // if administratively unlocked via cftools/command ID will be null
