@@ -19,6 +19,8 @@ class VST_Config
 	
 	protected float min_distance_from_spawn_to_lock = 50.0; // set to 0.0 to disable prevention
 	
+	protected int max_barrels_per_player = 0; // set to 0 to not limit
+	
 	protected ref array<string> Blacklist;
 	protected ref array<string> Admins;
 
@@ -31,6 +33,11 @@ class VST_Config
 	protected string tooclosetospawn_message_body = "Barrels have to be moved before locking, preferrably hidden or in a base";
 	protected string tooclosetospawn_message_icon = "set:dayz_inventory image:barrel";
 	protected float tooclosetospawn_message_show_time_secs = 5.0;
+	
+	protected string toomanylocked_message_title = "Too Many Owned Barrels";
+	protected string toomanylocked_message_body = "You have reached the maximum number of barrels you can own and can not be added to any more";
+	protected string toomanylocked_message_icon = "set:dayz_inventory image:barrel";
+	protected float toomanylocked_message_show_time_secs = 5.0;
 	
 	protected string unclaim_message_title = "Barrel Unclaimed";
 	protected string unclaim_message_body = "You have unclaimed this barrel and others may now claim it. To reclaim this barrel, simply close it with any item in it";
@@ -128,6 +135,8 @@ class VST_Config
 		
 		min_distance_from_spawn_to_lock = 50.0;
 		
+		max_barrels_per_player = 0;
+		
 		Blacklist = new array<string>;
 		Blacklist.Insert("WrittenNote");
 		Blacklist.Insert("VehicleKeyBase");
@@ -161,6 +170,10 @@ class VST_Config
 	    tooclosetospawn_message_icon = "set:dayz_inventory image:barrel";
 	    tooclosetospawn_message_show_time_secs = 5.0;
 
+		toomanylocked_message_title = "Too Many Owned Barrels";
+		toomanylocked_message_body = "You have reached the maximum number of barrels you can own and can not be added to any more";
+		toomanylocked_message_icon = "set:dayz_inventory image:barrel";
+		toomanylocked_message_show_time_secs = 5.0;
 		
 		unclaim_message_title = "Barrel Unclaimed";
 		unclaim_message_body = "You have unclaimed this barrel and others may now claim it. To reclaim this barrel, simply close it with any item in it";
@@ -270,6 +283,23 @@ class VST_Config
 		return tooclosetospawn_message_show_time_secs;
 	}
 	
+	string Get_toomanylocked_message_title()
+	{
+		return toomanylocked_message_title;
+	}
+	string Get_toomanylocked_message_body()
+	{
+		return toomanylocked_message_body;
+	}
+	string Get_toomanylocked_message_icon()
+	{
+		return toomanylocked_message_icon;
+	}
+	float Get_toomanylocked_message_show_time_secs()
+	{
+		return toomanylocked_message_show_time_secs;
+	}
+	
 	string Get_unclaim_message_title()
 	{
 		return unclaim_message_title;
@@ -361,6 +391,16 @@ class VST_Config
 	void Set_min_distance_from_spawn_to_lock(float mindistance)
 	{
 		min_distance_from_spawn_to_lock = mindistance;
+	}
+	
+	int Get_max_barrels_per_player()
+	{
+		return max_barrels_per_player;
+	}
+	
+	void Set_max_barrels_per_player(int newmaxbarrels)
+	{
+		max_barrels_per_player = newmaxbarrels;
 	}
 
 	
