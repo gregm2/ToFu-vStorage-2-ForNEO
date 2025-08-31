@@ -942,24 +942,6 @@ modded class Barrel_ColorBase
 			}
 			
 		}
-		if (g_Game.GetVSTConfig().Get_block_paper_with_writing())
-		{
-			if(item.IsKindOf("Paper"))
-			{
-				Paper paper = Paper.Cast(item);
-				if (paper)
-				{
-					WrittenNoteData wnd = paper.GetWrittenNoteData();
-					if(wnd)
-					{
-						if (wnd.GetNoteText() != "")
-						{
-							return true;
-						}
-					}
-				}
-			}
-		}
 
 		array<EntityAI> items_in_storage = new array<EntityAI>;
 		EntityAI item_in_storage;
@@ -1458,6 +1440,16 @@ modded class Barrel_ColorBase
 		{
 			itemObj.itemEEIsEgg = false;
 		}
+		
+		if (item_to_check.m_vst_neo_is_paper)
+		{
+			WrittenNoteData wnd = item_to_check.GetWrittenNoteData();
+			if (wnd)
+			{
+				itemObj.itemPprNoteData = wnd.GetNoteText();
+			}
+			itemObj.itemPprIsPaper = true;
+		}
 			
 		itemObj.itemTemp = item_to_check.GetTemperature();
 		
@@ -1876,6 +1868,19 @@ modded class Barrel_ColorBase
 			{
 				new_item.SetWet(item.itemWetness);
 			}
+			
+			if (item.itemPprIsPaper)
+			{
+				Paper ppr = Paper.Cast(new_item);
+				if (ppr)
+				{
+					WrittenNoteData wnd = ppr.GetWrittenNoteData();
+					if (wnd)
+					{
+						wnd.SetNoteText(item.itemPprNoteData);
+					}
+				}
+			}
 						
 			foreach(tofuvStorageObj childitem : item.itemChildren) {
 				vrestore(childitem, new_item, player);
@@ -1909,19 +1914,16 @@ modded class Barrel_ColorBase
 // make display name for written note clear why it can't go into storage
 modded class Paper
 {
-	override string GetDisplayName()
+	void Paper()
 	{
-		if(((m_NoteContents) && (m_NoteContents.GetNoteText() != "")))
-		{
-			return "WrittenNote";
-		}
-		return super.GetDisplayName();
+		m_vst_neo_is_paper = true;
 	}
 }
 
 modded class ItemBase
 {
 	bool m_vst_neo_is_easter_egg = false;
+	bool m_vst_neo_is_paper = false;
 }
 
 modded class EasterEgg

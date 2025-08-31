@@ -14,9 +14,6 @@ class VST_Config
 	protected int notification_cooldown_secs = 10;
 	protected int action_cooldown_secs = 5;
 	
-	/* added just in-case server-side admin notes can be done */
-	protected bool block_paper_with_writing = true;
-	
 	protected float min_distance_from_spawn_to_lock = 50.0; // set to 0.0 to disable prevention
 	
 	protected int max_barrels_per_player = 0; // set to 0 to not limit
@@ -164,8 +161,6 @@ class VST_Config
 				
 		notification_cooldown_secs = 10;
 		action_cooldown_secs = 5;
-		
-		block_paper_with_writing = true;
 		
 		min_distance_from_spawn_to_lock = 50.0;
 		
@@ -423,11 +418,6 @@ class VST_Config
 	int Get_action_cooldown_secs()
 	{
 		return action_cooldown_secs;
-	}
-	
-	bool Get_block_paper_with_writing()
-	{
-		return block_paper_with_writing;
 	}
 	
 	float Get_min_distance_from_spawn_to_lock()
