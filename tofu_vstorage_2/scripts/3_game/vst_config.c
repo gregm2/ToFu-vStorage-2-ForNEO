@@ -25,6 +25,7 @@ class VST_Config
 	
 	protected ref array<string> Blacklist;
 	protected ref array<string> Admins;
+	protected ref array<string> LockableTypes;
 
 	protected string claim_message_title = "Barrel Claimed";
 	protected string claim_message_body = "You have claimed this barrel and it will be locked to others when closed. To unclaim this barrel, simply close it when it is empty";
@@ -128,7 +129,15 @@ class VST_Config
 		return false;
 	}
 
-	
+	bool isLockable(string barreltypename)
+	{
+		if ((LockableTypes) && (LockableTypes.Find(barreltypename) != -1))
+		{
+			return true;
+		}
+		return false;
+	}
+
 	void Load()
     {
 		JsonFileLoader<VST_Config>.JsonLoadFile(FULLPATH, this);
@@ -187,6 +196,12 @@ class VST_Config
 		Admins = new array<string>;
 		Admins.Insert("12345678901234567");
 		
+		LockableTypes = new array<string>;
+		LockableTypes.Insert("Barrel_Green");
+		LockableTypes.Insert("Barrel_Blue");
+		LockableTypes.Insert("Barrel_Red");
+		LockableTypes.Insert("Barrel_Yellow");		
+		
 		claim_message_title = "Barrel Claimed";
 		claim_message_body = "You have claimed this barrel and it will be locked to others when closed. To unclaim this barrel, simply close it when it is empty";
 		claim_message_icon = "set:dayz_inventory image:barrel";
@@ -238,6 +253,11 @@ class VST_Config
 	array<int> Get_Admin_Hashes()
 	{
 		return Admins_hashes;
+	}
+	
+	array<string> Get_LockableTypes()
+	{
+		return LockableTypes;
 	}
 
 	int Get_script_logging()
