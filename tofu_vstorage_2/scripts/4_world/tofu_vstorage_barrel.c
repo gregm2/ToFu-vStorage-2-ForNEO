@@ -680,19 +680,43 @@ modded class Barrel_ColorBase
 	{
 		bool lockabletype = g_Game.GetVSTConfig().isLockable(m_vst_neo_typename);
 		
+		bool flag_check_ok = true;
 		if (g_Game.GetVSTConfig().Get_only_lock_if_in_flag_range())
 		{
-			if (lockabletype && vst_neo_IsTargetInActiveRefresherRange())
+			if (vst_neo_IsTargetInActiveRefresherRange())
 			{
-				return true;
+				flag_check_ok = true;
 			}
 			else
 			{
-				return false;
+				flag_check_ok = false;
 			}
 		}
 		
-		return lockabletype;
+		bool item_count_ok = true;
+		int minimum_items = g_Game.GetVSTConfig().Get_minimum_items_to_lock();
+		
+		if (minimum_items > 1) // only need to check if set above 1
+		{
+			GameInventory gi;
+			CargoBase cb;
+			
+			gi = GetInventory();
+			
+			if (gi)
+			{
+				cb = gi.GetCargo();
+				if (cb)
+				{
+					if (cb.GetItemCount() < minimum_items)
+					{
+						item_count_ok = false;
+					}
+				}
+			}			
+		}
+				
+		return lockabletype && flag_check_ok && item_count_ok;
 	}
 	
 	bool isProtectionDisabled()
