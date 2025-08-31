@@ -20,6 +20,8 @@ class VST_Config
 	
 	protected bool disable_barrel_protection = false;
 	
+	protected bool only_lock_if_in_flag_range = false;
+	
 	protected ref array<string> Blacklist;
 	protected ref array<string> Admins;
 	protected ref array<string> LockableTypes;
@@ -167,6 +169,8 @@ class VST_Config
 		max_barrels_per_player = 0;
 		
 		disable_barrel_protection = false;
+		
+		only_lock_if_in_flag_range = false;
 		
 		Blacklist = new array<string>;
 		Blacklist.Insert("WrittenNote");
@@ -450,4 +454,13 @@ class VST_Config
 		disable_barrel_protection = disable;
 	}
 	
+	bool Get_only_lock_if_in_flag_range()
+	{
+		return only_lock_if_in_flag_range;
+	}
+	
+	void Set_only_lock_if_in_flag_range(bool requireflag)
+	{
+		only_lock_if_in_flag_range = requireflag;
+	}
 };
