@@ -25,7 +25,7 @@ modded class ActionCloseBarrel
 		
 		if( ntarget )
 		{
-			if (ntarget.canInteract(playerID) || ntarget.canInteractAdmin(playerID) || ntarget.isProtectionDisabled())
+			if (ntarget.canInteract(playerID) || ntarget.canInteractAdmin(playerID) || ntarget.isProtectionDisabled() || ntarget.canShare())
 			{
 				if (ntarget.vst_neo_check_cooldown_and_notify(playerID))
 				{
