@@ -1341,9 +1341,35 @@ modded class Barrel_ColorBase
 			}
 		}
 		
+		if (item_to_check.m_vst_neo_is_easter_egg)
+		{
+			EasterEgg ee = EasterEgg.Cast(item_in_storage);
+			if (ee)
+			{
+				itemObj.itemEECaptureState = ee.vst_neo_GetCaptureState();
+				itemObj.itemEECreatureType = ee.vst_neo_GetCreatureType();
+				itemObj.itemWetness = ee.vst_neo_GetParScale(); // re-purposed variable
+				itemObj.itemEEDangerSound = ee.vst_neo_GetDangerSound();
+				itemObj.itemEECapSoundHash = ee.vst_neo_GetCaptureSoundHash();
+				itemObj.itemEERelSoundHash = ee.vst_neo_GetReleaseSoundHash();
+				itemObj.itemEEIsEgg = true;
+			}
+			else
+			{
+				Print("[NEO Barrels] object claiming to be easter egg was not");
+			}
+		}
+		else
+		{
+			itemObj.itemEEIsEgg = false;
+		}
+			
 		itemObj.itemTemp = item_to_check.GetTemperature();
-		itemObj.itemWetness = item_to_check.GetWet();
 		
+		if (!item_to_check.m_vst_neo_is_easter_egg) // wetness used in eastereggs for m_ParScale
+		{
+			itemObj.itemWetness = item_to_check.GetWet();
+		}		
 		
 		array<EntityAI> items = new array<EntityAI>;
 		item_in_storage.GetInventory().EnumerateInventory(InventoryTraversalType.LEVELORDER, items);
@@ -1736,8 +1762,26 @@ modded class Barrel_ColorBase
 			new_item.SetTemperature(item.itemTemp);
 			
 			
-			new_item.SetWet(item.itemWetness);
-			
+			if (item.itemEEIsEgg)
+			{
+				EasterEgg ee = EasterEgg.Cast(new_item);
+				if (ee)
+				{
+					ee.vst_neo_SetCaptureState(item.itemEECaptureState);
+					ee.vst_neo_SetCreatureType(item.itemEECreatureType);
+					ee.vst_neo_SetParScale(item.itemWetness);
+					ee.vst_neo_SetDangerSound(item.itemEEDangerSound);
+					ee.vst_neo_SetCaptureSoundHash(item.itemEECapSoundHash);
+					ee.vst_neo_SetReleaseSoundHash(item.itemEERelSoundHash);
+					ee.SetSynchDirty();
+				}				
+				new_item.SetWet(0);
+			}
+			else // wetness used for ParScale on eastereggs
+			{
+				new_item.SetWet(item.itemWetness);
+			}
+						
 			foreach(tofuvStorageObj childitem : item.itemChildren) {
 				vrestore(childitem, new_item, player);
 			}
@@ -1777,6 +1821,67 @@ modded class Paper
 			return "WrittenNote";
 		}
 		return super.GetDisplayName();
+	}
+}
+
+modded class ItemBase
+{
+	bool m_vst_neo_is_easter_egg = false;
+}
+
+modded class EasterEgg
+{
+	void EasterEgg()
+	{
+		m_vst_neo_is_easter_egg = true;
+	}
+	int vst_neo_GetCaptureState()
+	{
+		return m_CaptureState;
+	}
+	void vst_neo_SetCaptureState(int capstate)
+	{
+		m_CaptureState = capstate;
+	}
+	string vst_neo_GetCreatureType()
+	{
+		return m_CreatureType;
+	}
+	void vst_neo_SetCreatureType(string creaturetype)
+	{
+		m_CreatureType = creaturetype;
+	}
+	float vst_neo_GetParScale()
+	{
+		return m_ParScale;
+	}
+	void vst_neo_SetParScale(float parscale)
+	{
+		m_ParScale = parscale;
+	}
+	bool vst_neo_GetDangerSound()
+	{
+		return m_DangerSound;
+	}
+	void vst_neo_SetDangerSound(bool dangersound)
+	{
+		m_DangerSound = dangersound;
+	}
+	int vst_neo_GetCaptureSoundHash()
+	{
+		return m_CaptureSoundHash;
+	}
+	void vst_neo_SetCaptureSoundHash(int hash)
+	{
+		m_CaptureSoundHash = hash;
+	}
+	int vst_neo_GetReleaseSoundHash()
+	{
+		return m_ReleaseSoundHash;
+	}
+	void vst_neo_SetReleaseSoundHash(int hash)
+	{
+		m_ReleaseSoundHash = hash;
 	}
 }
 

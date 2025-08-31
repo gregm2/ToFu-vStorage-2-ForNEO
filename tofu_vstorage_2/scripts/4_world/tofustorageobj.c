@@ -11,7 +11,7 @@ class tofuvStorageObj
 	int itemLiquidType = 0;
 	int itemFoodstage = 0;
 	float itemTemp = 0;
-	float itemWetness = 0;
+	float itemWetness = 0; // also used for EasterEgg m_ParScale and eggs will have no wetness stored/loaded
 	int itemInventoryType = 0;
 	int itemIdx = 0;
 	int itemSlotId = 0;
@@ -23,7 +23,7 @@ class tofuvStorageObj
 	
 	autoptr array<string> itemMagInhalt = {};
 	
-	string itemUnusedString1 = "";
+	string itemEECreatureType = "";
 	string itemUnusedString2 = "";
 	string itemUnusedString3 = "";
 	string itemUnusedString4 = "";
@@ -31,15 +31,15 @@ class tofuvStorageObj
 	string itemUnusedString6 = "";
 	
 	int itemEnergy = 0;
-	int itemUnusedInt2 = 0;
-	int itemUnusedInt3 = 0;
-	int itemUnusedInt4 = 0;
+	int itemEECaptureState = 0; // easter egg capture state
+	int itemEERelSoundHash = 0; // easter egg release sound hash
+	int itemEECapSoundHash = 0; // easter egg capture sound hash
 	int itemUnusedInt5 = 0;
 	int itemUnusedInt6 = 0;
 	
 	bool itemHasEnergy = false;
-	bool itemUnusedBool2 = false;
-	bool itemUnusedBool3 = false;
+	bool itemEEDangerSound = false; // easter egg danger sound flag
+	bool itemEEIsEgg = false; // flag for faster easter egg detection on load
 	bool itemUnusedBool4 = false;
 	bool itemUnusedBool5 = false;
 	bool itemUnusedBool6 = false;
