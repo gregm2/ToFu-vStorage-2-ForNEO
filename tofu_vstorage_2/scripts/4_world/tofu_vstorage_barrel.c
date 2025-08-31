@@ -678,12 +678,54 @@ modded class Barrel_ColorBase
 	
 	bool isLockable()
 	{
-		return g_Game.GetVSTConfig().isLockable(m_vst_neo_typename);
+		bool lockabletype = g_Game.GetVSTConfig().isLockable(m_vst_neo_typename);
+		
+		if (g_Game.GetVSTConfig().Get_only_lock_if_in_flag_range())
+		{
+			if (lockabletype && vst_neo_IsTargetInActiveRefresherRange())
+			{
+				return true;
+			}
+			else
+			{
+				return false;
+			}
+		}
+		
+		return lockabletype;
 	}
 	
 	bool isProtectionDisabled()
 	{
 		return g_Game.GetVSTConfig().Get_disable_barrel_protection();
+	}
+	
+	// stolen from bohemia playerbase.c, slight tweaks
+	bool vst_neo_IsTargetInActiveRefresherRange()
+	{
+		array<vector> temp = new array<vector>;
+		temp = GetGame().GetMission().GetActiveRefresherLocations();
+		if (!temp)
+		{
+			return false;
+		}
+		
+		int count = temp.Count();
+		if (count > 0)
+		{
+			vector pos = GetPosition();
+			for (int i = 0; i < count; i++)
+			{
+				if (vector.Distance(pos,temp.Get(i)) < GameConstants.REFRESHER_RADIUS)
+					return true;
+			}
+			
+			return false;
+		}
+		else
+		{
+			return false;
+		}
 	}
 	
 	void Claim(PlayerIdentity identity)
