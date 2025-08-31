@@ -27,7 +27,8 @@ modded class Barrel_ColorBase
 	
 	protected bool m_vst_neo_is_restoring; // flag indicating items being restored from disk
 
-
+	protected string m_vst_neo_typename;
+	
 	void Barrel_ColorBase()
 	{
 		// True dolphin array trick from above:
@@ -63,7 +64,8 @@ modded class Barrel_ColorBase
 				
 			//GetGame().GetCallQueue(CALL_CATEGORY_SYSTEM).CallLater(vst_timer_start, 60000, false, false);
 		}
-			
+		
+		m_vst_neo_typename = GetType();
 	}
 	
 	void ~Barrel_ColorBase()
@@ -614,6 +616,11 @@ modded class Barrel_ColorBase
 			return false;
 		}
 		
+		if (!isLockable())
+		{
+			return true;
+		}
+		
 		string steamid = identity.GetPlainId();
 		
 		if(m_vst_wasplaced == false) {
@@ -662,6 +669,11 @@ modded class Barrel_ColorBase
 		return false;
 	}
 	
+	bool isLockable()
+	{
+		return g_Game.GetVSTConfig().isLockable(m_vst_neo_typename);
+	}
+	
 	bool isProtectionDisabled()
 	{
 		return g_Game.GetVSTConfig().Get_disable_barrel_protection();
@@ -675,7 +687,7 @@ modded class Barrel_ColorBase
 		}
 		
 		// if protections are disabled don't allow claiming
-		if (isProtectionDisabled())
+		if ((isProtectionDisabled()) || (!isLockable()))
 		{
 			return;
 		}
