@@ -1,23 +1,8 @@
-
-
-
 modded class MissionServer
 {
-	const string VST_NEO_BARREL_UNLOCK_RADIUS_CMD = "/barrel_unlockradius";
-	const string VST_NEO_BARREL_UNLOCK_ALL_CMD = "/barrel_unlockall";
-	const string VST_NEO_BARREL_SHARE_CMD = "/barrel_share";
-		
 	ref VST_Config m_VST_Config;
 	
-	ref array<int> m_vst_neo_barrel_command_hashes;
-	
-	void MissionServer()
-	{
-		m_vst_neo_barrel_command_hashes = new array<int>;
-		m_vst_neo_barrel_command_hashes.Insert(VST_NEO_BARREL_UNLOCK_RADIUS_CMD.Hash());
-		m_vst_neo_barrel_command_hashes.Insert(VST_NEO_BARREL_UNLOCK_ALL_CMD.Hash());
-		m_vst_neo_barrel_command_hashes.Insert(VST_NEO_BARREL_SHARE_CMD.Hash());
-	}
+	ref NEO_VST_Barrel_Commands nvbc_handler;
 	
 	override void OnInit()
     {
@@ -25,194 +10,9 @@ modded class MissionServer
                
         m_VST_Config = new VST_Config;
         g_Game.SetVSTConfig(m_VST_Config);
+		nvbc_handler = new NEO_VST_Barrel_Commands;
     }
 
-	PlayerIdentity vst_neo_getIDFromName(string name)
-	{
-		array<Man> playerarray = new array<Man>;
-		g_Game.GetPlayers(playerarray);
-
-		if (!playerarray)
-		{
-			Print("[NEO Barrels] player array was null");
-			return null;
-		}
-
-        foreach (Man man: playerarray)
-		{
-			if (man)
-			{
-				PlayerIdentity id = man.GetIdentity();
-				if (id)
-				{
-					if (id.GetName() == name)
-					{
-						return id;
-					}
-				}
-			}
-		}
-		return null; // not found
-	}
-
-	
-	void vst_neo_barrel_unlockradius_cmd(PlayerIdentity identity, float radius)
-	{
-		if (!identity)
-		{
-			return;
-		}
-		string response;
-		Man man = identity.GetPlayer();
-		if(!man)
-		{
-			response = "No player object found for command issuer";
-			Barrel_ColorBase.vst_neo_send_player_message(identity, response);
-			return;
-		}
-		
-		if (g_Game.GetVSTConfig().isAdmin(identity.GetPlainId()))
-		{
-			if (radius <= 0)
-			{
-				response = "invalid radius " + radius;
-				Barrel_ColorBase.vst_neo_send_player_message(identity, response);
-				return;
-			}
-			int count;
-			count = Barrel_ColorBase.vst_neo_unlock_in_radius(man.GetPosition(), radius);
-			response = "Unlocked " + count + " barrels";
-			Barrel_ColorBase.vst_neo_send_player_message(identity, response);
-		}			
-	}
-	
-	void vst_neo_barrel_unlockradius_help(PlayerIdentity identity)
-	{
-		if (!identity)
-		{
-			return;
-		}
-		
-		if (g_Game.GetVSTConfig().isAdmin(identity.GetPlainId()))
-		{
-			string response = "Usage: " + VST_NEO_BARREL_UNLOCK_RADIUS_CMD + " <radius (floating point)>";
-			Barrel_ColorBase.vst_neo_send_player_message(identity, response);
-			response = "  unlocks locked barrels within a (2D/circular) radius of the command issuer";
-			Barrel_ColorBase.vst_neo_send_player_message(identity, response);
-		}			
-	}
-	
-	void vst_neo_barrel_unlockall_cmd(PlayerIdentity identity)
-	{
-		if (!identity)
-		{
-			return;
-		}
-		string response;
-		
-		if (g_Game.GetVSTConfig().isAdmin(identity.GetPlainId()))
-		{
-			int count;
-			count = Barrel_ColorBase.vst_neo_unlock_all();
-			response = "Unlocked " + count + " barrels";
-			Barrel_ColorBase.vst_neo_send_player_message(identity, response);
-		}			
-	}
-	
-	void vst_neo_barrel_unlockall_help(PlayerIdentity identity)
-	{
-		if (!identity)
-		{
-			return;
-		}
-		
-		if (g_Game.GetVSTConfig().isAdmin(identity.GetPlainId()))
-		{
-			string response = "Usage: " + VST_NEO_BARREL_UNLOCK_ALL_CMD + " confirm";
-			Barrel_ColorBase.vst_neo_send_player_message(identity, response);
-			response = "  unlocks all locked barrels, extra confirm on command is to prevent accidents";
-			Barrel_ColorBase.vst_neo_send_player_message(identity, response);
-		}			
-	}
-	
-	void vst_neo_barrel_share_cmd(PlayerIdentity identity)
-	{
-		if (!identity)
-		{
-			return;
-		}
-		string message = "Barrel sharing enabled, next person to close your barrel will be added to the owners list";
-		Barrel_ColorBase.vst_neo_share_barrel(identity);
-		Barrel_ColorBase.vst_neo_send_player_message(identity, message);	
-	}
-	
-	void vst_neo_barrel_share_help(PlayerIdentity identity)
-	{
-		string response = "Usage: " + VST_NEO_BARREL_SHARE_CMD;
-		Barrel_ColorBase.vst_neo_send_player_message(identity, response);
-		response = "  allows you to share a barrel by having the other player close it while open";
-		Barrel_ColorBase.vst_neo_send_player_message(identity, response);
-	}
-	
-	void vst_neo_barrel_handle_command(string name, string message)
-	{
-		PlayerIdentity identity;
-		if (message.Get(0) == "/")
-		{
-			TStringArray strs = new TStringArray;
-			float radius;
-			message.Split(" ", strs);
-			if (strs.Count() > 0)
-			{
-				if (m_vst_neo_barrel_command_hashes.Find(strs[0].Hash()) == -1)
-				{
-					return;
-				}
-				
-				identity = vst_neo_getIDFromName(name);
-				
-				if (!identity)
-				{
-					return;
-				}
-				
-				switch(strs[0])
-				{
-					case VST_NEO_BARREL_UNLOCK_RADIUS_CMD:						
-						if (strs.Count() > 1)
-						{
-							radius = strs[1].ToFloat();
-							vst_neo_barrel_unlockradius_cmd(identity, radius);
-						}
-						else
-						{
-							vst_neo_barrel_unlockradius_help(identity);
-						}						
-						break;
-					
-					case VST_NEO_BARREL_UNLOCK_ALL_CMD:
-						if (strs.Count() > 1)
-						{
-							if (strs[1] == "confirm")
-							{
-								vst_neo_barrel_unlockall_cmd(identity);
-							}
-						}
-						else
-						{
-							vst_neo_barrel_unlockall_help(identity);
-						}						
-						break;
-					
-					case VST_NEO_BARREL_SHARE_CMD:
-						vst_neo_barrel_share_cmd(identity);
-						break;
-				}
-			}
-		}
-
-	}
-		
 	override void OnEvent(EventType eventTypeId, Param params)
 	{
 		super.OnEvent(eventTypeId, params);
@@ -226,7 +26,7 @@ modded class MissionServer
 				ChatMessageEventParams chat_params = ChatMessageEventParams.Cast( params );
 				sender_name = chat_params.param2;
 				message = chat_params.param3;
-				vst_neo_barrel_handle_command(sender_name, message);
+				nvbc_handler.vst_neo_barrel_handle_command(sender_name, message);
 				break;
 		}
 	}
@@ -242,64 +42,7 @@ modded class MissionServer
 #endif
 } // end of modded MissionServer
 
-#ifdef GAMELABS
-class VST_NEO_CFCloud_UnlockBarrelsRadius extends GameLabsContextAction {
-        void VST_NEO_CFCloud_UnlockBarrelsRadius() {
-            this.actionCode = "VST_NEO_CFCloud_UnlockBarrelsRadius";
-            this.actionName = "Unlock locked barrels in radius (inifinite height)";
-            this.actionIcon = "database";
-            this.actionColour = "warning";
-            this.actionContext = "world";
 
-            this.parameters.Insert("vector", GameLabsActionParameter("Coordinates", "World coordinates", "vector"));
-		    GameLabsActionParameter radius_gap = new GameLabsActionParameter("Radius", "Radius to unlock barrels in (must be more than 0)", "float");
-			radius_gap.valueFloat = 0.1;
-            this.parameters.Insert("radius", radius_gap);
-
-        }
-
-        override bool Execute(GameLabsActionContext context) 
-		{
-			vector position = context.parameters.Get("vector").GetVector();
-			float radius = context.parameters.Get("radius").GetFloat();
-		
-            GetGameLabs().GetLogger().Warn(string.Format("[UnlockBarrelsRadius] Unlocking %1m at %2", radius, position));
-
-			if (radius <= 0) 
-			{
-				GetGameLabs().GetLogger().Warn("[UnlockBarrelsRadius] radius less than or equal to zero");
-				return false;
-			}
-    
-			int unlockedcount = 0;
-			unlockedcount = Barrel_ColorBase.vst_neo_unlock_in_radius(position, radius);
-			GetGameLabs().GetLogger().Warn(string.Format("[UnlockBarrelsRadius] Unlocked %1 items", unlockedcount));
-		
-            return true;
-        }
-};
-
-class VST_NEO_CFCloud_UnlockAllBarrels extends GameLabsContextAction {
-        void VST_NEO_CFCloud_UnlockAllBarrels() {
-            this.actionCode = "VST_NEO_CFCloud_UnlockAllBarrels";
-            this.actionName = "Unlock ALL locked barrels";
-            this.actionIcon = "database";
-            this.actionColour = "danger";
-            this.actionContext = "world";
-        }
-
-        override bool Execute(GameLabsActionContext context) 
-		{
-            GetGameLabs().GetLogger().Warn("[UnlockBarrelsAll] Unlocking ALL barrels");
-
-			int unlockedcount = 0;
-			unlockedcount = Barrel_ColorBase.vst_neo_unlock_all();
-			GetGameLabs().GetLogger().Warn(string.Format("[UnlockBarrelsAll] Unlocked %1 items", unlockedcount));		
-            return true;
-        }
-};
-
-#endif
 
 
 // old init.c for testing, will be moving more stuff into above code to support commands

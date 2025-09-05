@@ -21,6 +21,7 @@ modded class Barrel_ColorBase
 	
 	protected int m_auto_close_random_seconds_min;
 	protected int m_auto_close_random_seconds_max;
+	protected int m_auto_close_distance;
 
 	//protected ref array<string> m_BlackListItems;
 	
@@ -53,6 +54,7 @@ modded class Barrel_ColorBase
 
 		m_auto_close_random_seconds_min = g_Game.GetVSTConfig().Get_auto_close_random_seconds_min();
 		m_auto_close_random_seconds_max = g_Game.GetVSTConfig().Get_auto_close_random_seconds_max();
+		m_auto_close_distance = g_Game.GetVSTConfig().Get_auto_close_distance();
 
 		m_vst_neo_last_notify_time = 0.0;
 		m_vst_neo_last_action_time = 0.0;
@@ -982,7 +984,7 @@ modded class Barrel_ColorBase
 		if(ce)
 		{
 			// enfusion modders discord swears this is faster than getting all objects 
-			if (ce.AvoidPlayer(GetPosition(), 10.0))
+			if (ce.AvoidPlayer(GetPosition(), m_auto_close_distance))
 			{
 				PlayerIsAround = false;
 			}
@@ -995,7 +997,7 @@ modded class Barrel_ColorBase
 		{
 			// if we can't get a CE interface, use the original method
 			array<Object> items_in_vicinity = new array<Object>;
-			GetGame().GetObjectsAtPosition(GetPosition(), 10.0, items_in_vicinity, NULL);
+			GetGame().GetObjectsAtPosition(GetPosition(), m_auto_close_distance, items_in_vicinity, NULL);
 			
 			for (int i = 0; i < items_in_vicinity.Count(); i++)
 			{
