@@ -10,7 +10,8 @@ class VST_Config
 	
 	protected int auto_close_random_seconds_min = 120;
 	protected int auto_close_random_seconds_max = 240;
-
+	protected int auto_close_distance = 10;
+	
 	protected int notification_cooldown_secs = 10;
 	protected int action_cooldown_secs = 5;
 	
@@ -29,37 +30,37 @@ class VST_Config
 	protected ref array<string> LockableTypes;
 
 	protected string claim_message_title = "Barrel Claimed";
-	protected string claim_message_body = "You have claimed this barrel and it will be locked to others when closed. To unclaim this barrel, simply close it when it is empty";
+	protected string claim_message_body = "You have claimed this barrel and it will be locked to others when closed. To unclaim this barrel, simply close it when it is empty. (enter '/barrel_help' in chat for more info)";
 	protected string claim_message_icon = "set:dayz_inventory image:barrel";
 	protected float claim_message_show_time_secs = 5.0;
 	
 	protected string tooclosetospawn_message_title = "Barrel Can't Be Locked Here";
-	protected string tooclosetospawn_message_body = "Barrels have to be moved before locking, preferrably hidden or in a base";
+	protected string tooclosetospawn_message_body = "Barrels have to be moved before locking, preferrably hidden or in a base. (enter '/barrel_help' in chat for more info)";
 	protected string tooclosetospawn_message_icon = "set:dayz_inventory image:barrel";
 	protected float tooclosetospawn_message_show_time_secs = 5.0;
 	
 	protected string toomanylocked_message_title = "Too Many Owned Barrels";
-	protected string toomanylocked_message_body = "You have reached the maximum number of barrels you can own and can not be added to any more";
+	protected string toomanylocked_message_body = "You have reached the maximum number of barrels you can own and can not be added to any more. (enter '/barrel_help' in chat for more info)";
 	protected string toomanylocked_message_icon = "set:dayz_inventory image:barrel";
 	protected float toomanylocked_message_show_time_secs = 5.0;
 	
 	protected string unclaim_message_title = "Barrel Unclaimed";
-	protected string unclaim_message_body = "You have unclaimed this barrel and others may now claim it. To reclaim this barrel, simply close it with any item in it";
+	protected string unclaim_message_body = "You have unclaimed this barrel and others may now claim it. To reclaim this barrel, simply close it with any item in it. (enter '/barrel_help' in chat for more info)";
 	protected string unclaim_message_icon = "set:dayz_inventory image:barrel";
 	protected float unclaim_message_show_time_secs = 5.0;
 
 	protected string locked_message_title = "Barrel Locked";
-	protected string locked_message_body = "Another player has claimed this barrel and it is locked, preventing other others from opening it or damaging it";
+	protected string locked_message_body = "Another player has claimed this barrel and it is locked, preventing other others from opening it or damaging it. (enter '/barrel_help' in chat for more info)";
 	protected string locked_message_icon = "set:dayz_inventory image:barrel";
 	protected float locked_message_show_time_secs = 5.0;
 
 	protected string cooldown_message_title = "Barrel action cooldown";
-	protected string cooldown_message_body = "Do not perform actions on virtual storage barrels too frequently, try again after a few seconds";
+	protected string cooldown_message_body = "Do not perform actions on virtual storage barrels too frequently, try again after a few seconds. (enter '/barrel_help' in chat for more info)";
 	protected string cooldown_message_icon = "set:dayz_inventory image:barrel";
 	protected float cooldown_message_show_time_secs = 5.0;
 	
 	protected string blacklist_message_title = "Invalid item for virtual storage";
-	protected string blacklist_message_body = "The item you have placed in the barrel is incompatible with virtual storage and has been ejected. Look for it in vicinity view";
+	protected string blacklist_message_body = "The item you have placed in the barrel is incompatible with virtual storage and has been ejected. Look for it in vicinity view. (enter '/barrel_help' in chat for more info)";
 	protected string blacklist_message_icon = "set:dayz_inventory image:barrel";
 	protected float blacklist_message_show_time_secs = 5.0;
 	
@@ -161,6 +162,7 @@ class VST_Config
 		
 		auto_close_random_seconds_min = 120;
 		auto_close_random_seconds_max = 240;
+		auto_close_distance = 10;
 		
 				
 		notification_cooldown_secs = 10;
@@ -288,6 +290,11 @@ class VST_Config
 		return auto_close_random_seconds_max;
 	}
 	
+	int Get_auto_close_distance()
+	{
+		return auto_close_distance;
+	}
+	
 	// Set methods for test access
 	void Set_auto_close_random_seconds_min(int new_min)
 	{
@@ -297,6 +304,11 @@ class VST_Config
 	void Set_auto_close_random_seconds_max(int new_max)
 	{
 		auto_close_random_seconds_max = new_max;
+	}
+	
+	void Set_auto_close_distance(int newdistance)
+	{
+		auto_close_distance = newdistance;		
 	}
 	
 	string Get_claim_message_title()
