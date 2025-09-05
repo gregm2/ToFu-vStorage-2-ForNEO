@@ -1,8 +1,8 @@
 class VST_Config
 {	
 	
-	static const string CONFIG_ROOT = "$profile:ToFuVStorage/";
-    static const string FULLPATH = "$profile:ToFuVStorage/VST_Config.json";
+	static const string CONFIG_ROOT = "$profile:ToFuVStorage_V2/";
+    static const string FULLPATH = "$profile:ToFuVStorage_V2/VST_Config_V2.json";
 	
 	protected int script_logging = 0;
 	
@@ -179,7 +179,6 @@ class VST_Config
 		minimum_items_to_lock = 1;
 			
 		Blacklist = new array<string>;
-		Blacklist.Insert("WrittenNote");
 		Blacklist.Insert("VehicleKeyBase");
 		Blacklist.Insert("MCK_CarKey_Base");
 		Blacklist.Insert("ChickenBreastMeat");

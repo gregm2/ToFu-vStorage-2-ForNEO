@@ -187,10 +187,36 @@ modded class Barrel_ColorBase
 	string vst_neo_get_express_filename(string steamid)
 	{
 		// we don't have any express barrels yet, but may add them
-		return "$profile:ToFuVStorage/"+steamid+".save";
+		return "$profile:ToFuVStorage_V2/"+steamid+".save";
 	}
 	
 	string vst_neo_get_save_filename()
+	{
+		int b1;
+		int b2;
+		int b3;
+		int b4;
+		string filename;
+		GetPersistentID(b1, b2, b3, b4);
+		
+		filename = "$profile:ToFuVStorage_V2/container_"+b1+"_"+b2+"_"+b3+"_"+b4+".save";
+		return filename;
+	}
+	
+	string vst_neo_get_meta_filename()
+	{
+		int b1;
+		int b2;
+		int b3;
+		int b4;
+		string filename;
+		GetPersistentID(b1, b2, b3, b4);
+		
+		filename = "$profile:ToFuVStorage_V2/container_"+b1+"_"+b2+"_"+b3+"_"+b4+".meta";
+		return filename;
+	}
+	
+	string vst_neo_get_save_filename_V1()
 	{
 		int b1;
 		int b2;
@@ -203,7 +229,7 @@ modded class Barrel_ColorBase
 		return filename;
 	}
 	
-	string vst_neo_get_meta_filename()
+	string vst_neo_get_meta_filename_V1()
 	{
 		int b1;
 		int b2;
@@ -307,7 +333,73 @@ modded class Barrel_ColorBase
 		}
 	}
 	
-	
+	void vst_neo_load_metadata_V1()
+	{
+		string filename;
+		
+		if(this.GetType() != "tofu_vstorage_q_barrel_express")
+		{
+			filename = vst_neo_get_meta_filename_V1();
+		}
+		else
+		{
+			//filename = steamid+".meta";
+			return;
+		}
+		
+		// before the first save, meta file won't exist, especially loading this into a live server
+		if (!FileExist(filename))
+		{
+			return;
+		}
+		
+		autoptr tofuvStorageContainerMeta_V1 containerObjMeta = new tofuvStorageContainerMeta_V1();
+		FileSerializer file = new FileSerializer();
+		if (file.Open(filename, FileMode.READ))
+		{
+			file.Read(containerObjMeta);
+			file.Close();
+			//Print("Metadata Serialized and saved");
+		}
+
+		m_vst_hasitems = containerObjMeta.m_vst_hasitems;
+		m_vst_wasplaced = containerObjMeta.m_vst_wasplaced;
+		
+		// recover mixed up steamID and store into new steam id array
+		/*
+					string steamid_part1 = steamid.Substring(0,6);
+					string steamid_part2 = steamid.Substring(6,6);
+					string steamid_part3 = steamid.Substring(12,5);
+					saveSteamid(steamid_part1,steamid_part2,steamid_part3);
+				...
+					void saveSteamid(string a, string b, string c) {
+						string mod1 = "9"+a; 
+						string mod2 = "9"+b;
+						string mod3 = "9"+c;
+						
+						m_vst_steamid1 = mod1.ToInt();
+						m_vst_steamid2 = mod2.ToInt();
+						m_vst_steamid3 = mod3.ToInt();
+						
+						m_vst_wasplaced = true;
+					}
+		*/
+		string mod1 = containerObjMeta.m_vst_steamid1.ToString();
+		string mod2 = containerObjMeta.m_vst_steamid2.ToString();
+		string mod3 = containerObjMeta.m_vst_steamid3.ToString();
+		
+		string steamid = mod1.Substring(1, mod1.Length() - 1) + mod2.Substring(1, mod2.Length() - 1) + mod3.Substring(1, mod3.Length() - 1);
+		
+		m_vst_owner_steamids.Insert(steamid);
+		// name will have to get an update later after a close operation
+		
+		vst_neo_save_metadata(); /* convert to V2 */
+		vst_neo_load_metadata(); /* now loaded and owner hashes updated */
+		DeleteFile(filename);
+
+		return;
+	}
+
 	void vst_neo_closed_by(PlayerIdentity identity)
 	{
 		if (!identity)
@@ -697,6 +789,12 @@ modded class Barrel_ColorBase
 		// now check string match
 		if ((m_vst_owner_steamids) && (m_vst_owner_steamids.Find(steamid) != -1))
 		{
+			/* make sure name is on list if loading from v1 */
+			string name = identity.GetName();
+			if (m_vst_owner_names.Find(name) == -1)
+			{
+				m_vst_owner_names.Insert(name);
+			}
 			return true;
 		}
 				
@@ -1260,8 +1358,12 @@ modded class Barrel_ColorBase
 		
 		if (!FileExist(filename))
 		{
-			m_vst_neo_is_restoring = false;
-			return true; // no saved data to restore (avoids clearing contents)
+			filename = vst_neo_get_save_filename_V1(); // v1 files should be compatible, set filename so it is loaded and deleted at end.
+			if (!FileExist(filename))
+			{
+				m_vst_neo_is_restoring = false;
+				return true; // no saved data to restore (avoids clearing contents)
+			}
 		}
 		if(g_Game.GetVSTConfig().Get_script_logging() == 1)
 			Print("hasitems on restore: " + m_vst_hasitems);

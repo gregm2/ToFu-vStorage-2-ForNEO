@@ -1,3 +1,5 @@
+// v2 changes only involve renaming unused variables and re-purposing others, should be compatible
+// with v1
 class tofuvStorageObj 
 {
 	string itemName = "";
@@ -60,4 +62,13 @@ class tofuvStorageContainerMeta
 	bool m_vst_wasplaced;
 	ref array<string> m_vst_owner_names = {};
 	ref array<string> m_vst_owner_steamids = {};
+};
+
+class tofuvStorageContainerMeta_V1
+{
+	bool m_vst_hasitems;
+	int m_vst_steamid1;
+	int m_vst_steamid2;
+	int m_vst_steamid3;
+	bool m_vst_wasplaced;
 };
