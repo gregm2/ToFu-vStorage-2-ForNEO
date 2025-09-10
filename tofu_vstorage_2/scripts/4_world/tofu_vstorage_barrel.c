@@ -1,6 +1,8 @@
 
 modded class Barrel_ColorBase
 {
+	static const string s_vst_neo_placeholder_type = "SparkPlug";
+	
 	// thanks to TrueDolphin for this little trick: https://github.com/TrueDolphin/references/blob/main/other/class-nearby.c#L6
 	static ref array <Barrel_ColorBase> s_vst_neo_barrel_array;
 	
@@ -327,10 +329,11 @@ modded class Barrel_ColorBase
 			}
 			m_vst_neo_owners_counted_from_load = true; // don't repeat owner loading
 		}
-		if (m_vst_hasitems)
-		{
-			SetTakeable(false);
-		}
+		// commented out, place holder object should handle this now
+		//if (m_vst_hasitems)
+		//{
+		//	SetTakeable(false);
+		//}
 	}
 	
 	void vst_neo_load_metadata_V1()
@@ -1125,7 +1128,15 @@ modded class Barrel_ColorBase
 
 	void setItems(bool items)
 	{
+		if (m_vst_hasitems != items)
+		{
+			m_vst_metadata_updated = true;
+		}
 		m_vst_hasitems = items;
+		if (m_vst_metadata_updated)
+		{
+			vst_neo_save_metadata();
+		}
 	}
 	
 	override void OnStoreSave(ParamsWriteContext ctx)
@@ -1317,26 +1328,27 @@ modded class Barrel_ColorBase
 		m_vst_metadata_updated = true;
 		vst_neo_save_metadata();
 	}
-
-	override void SetTakeable(bool pState)
-	{
-		if (m_vst_hasitems)
-		{
-			super.SetTakeable(false); // This syncs to client so should block moving barrels that aren't really "empty"
-			return;
-		}
-		super.SetTakeable(pState);
-	}
+    // commented out, place holder object should handle this now
+	//override void SetTakeable(bool pState)
+	//{
+		//if (m_vst_hasitems)
+		//{
+		//	super.SetTakeable(false); // This syncs to client so should block moving barrels that aren't really "empty"
+		//	return;
+		//}
+		//super.SetTakeable(pState);
+	//}
 		
-	override bool IsEmpty()
-	{
+	// commented out, place holder should handle this now
+	//override bool IsEmpty()
+	//{
 		// block poking holes in a barrel that's not "actually" empty in the call to the pokeholesbarrel recipe's CanDo() function
-		if (m_vst_hasitems)
-		{
-			return false;
-		}
-		return super.IsEmpty();
-	}
+		//if (m_vst_hasitems)
+		//{
+		//	return false;
+		//}
+		//return super.IsEmpty();
+	//}
 	
 	bool vopen(PlayerBase player, string steamid = "")
 	{
@@ -1367,24 +1379,30 @@ modded class Barrel_ColorBase
 		}
 		if(g_Game.GetVSTConfig().Get_script_logging() == 1)
 			Print("hasitems on restore: " + m_vst_hasitems);
-		// clear 'holding' rag if it is supposed to be empty (this is commented out now, override IsEmpty to catch this in recipe check and SetTakeable which is synced to client
-		//if (!m_vst_hasitems)
-		//{
-			//autoptr array<EntityAI> items_to_store = new array<EntityAI>;
-			//GetInventory().EnumerateInventory(InventoryTraversalType.LEVELORDER, items_to_store);
-			//int count = items_to_store.Count();
-			//if(g_Game.GetVSTConfig().Get_script_logging() == 1)
-				//Print("restoring, found " + count + "items in restore step of empty storage");
-			//for (int j= 0; j < count; j++)
-			//{
-				//EntityAI item_in_storage_to_delete = items_to_store.Get(j);
-				//if (item_in_storage_to_delete) {
-					//if(g_Game.GetVSTConfig().Get_script_logging() == 1)
-						//Print("deleting " + item_in_storage_to_delete.GetDisplayName());
+		// clear place holder object if it is supposed to be empty
+		if (m_vst_hasitems)
+		{
+			autoptr array<EntityAI> items_to_store = new array<EntityAI>;
+			GetInventory().EnumerateInventory(InventoryTraversalType.LEVELORDER, items_to_store);
+			int count = items_to_store.Count();
+			if(g_Game.GetVSTConfig().Get_script_logging() == 1)
+			{
+				Print("restoring, found " + count + "items in restore step of empty storage");
+			}
+			for (int j= 0; j < count; j++)
+			{
+				EntityAI item_in_storage_to_delete = items_to_store.Get(j);
+				if ((item_in_storage_to_delete) && (item_in_storage_to_delete.GetType() == s_vst_neo_placeholder_type))
+				{
+					if(g_Game.GetVSTConfig().Get_script_logging() == 1)
+					{
+						Print("deleting " + item_in_storage_to_delete.GetDisplayName());
+					}
 					//item_in_storage_to_delete.Delete();
-				//}
-			//}
-		//}
+					g_Game.ObjectDelete(item_in_storage_to_delete); // don't defer deletion, need place holder gone to make room for cargo
+				}
+			}
+		}
 		
 		FileSerializer openfile = new FileSerializer();
 		autoptr tofuvStorageContainer loadedContainerObj = new tofuvStorageContainer() ;
@@ -1490,7 +1508,9 @@ modded class Barrel_ColorBase
 			}
 		}
 		if(g_Game.GetVSTConfig().Get_script_logging() == 1)
+		{
 			Print("[vStorage] in close items check count = " + count + " original_count = " + original_count);
+		}
 		if(count == 1)
 			setItems(false);
 		else 
@@ -1509,18 +1529,21 @@ modded class Barrel_ColorBase
 				for (int j= 0; j < count; j++)
 				{
 					EntityAI item_in_storage_to_delete = items_to_store.Get(j);
-					if (item_in_storage_to_delete) {
-						item_in_storage_to_delete.Delete();
+					if (item_in_storage_to_delete) 
+					{
+						//item_in_storage_to_delete.Delete();
+						g_Game.ObjectDelete(item_in_storage_to_delete); // don't defer deletion, make room for placeholder
 					}
 				}
 			}
 			file.Close();
 			//Print("Content Serialized and saved");
 		}
-		//if (m_vst_hasitems) //commented out, new method to block poking holes and moving barrels with virtual items
-		//{
-			//GetInventory().CreateEntityInCargo("Rag");
-		//}
+		if (m_vst_hasitems) 
+		{
+			// put a single place holder in there, so clients know it's not empty, we clear it on open
+			GetInventory().CreateEntityInCargo(s_vst_neo_placeholder_type);
+		}
 		////Print("[vStorage] vclose() end");
 	}
 
