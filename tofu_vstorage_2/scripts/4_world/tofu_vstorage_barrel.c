@@ -1188,17 +1188,17 @@ modded class Barrel_ColorBase
 		*/
 		
 		int i;
-		string BlackListClass;
 
-		for (i = 0; i < g_Game.GetVSTConfig().Get_Blacklist().Count(); i++)
+		string itemclass = item.GetType();
+		
+		array<int> blh = g_Game.GetVSTConfig().Get_Blacklist_Hashes();
+		if (blh.Find(itemclass.Hash()) != -1)
 		{
-			BlackListClass = g_Game.GetVSTConfig().Get_Blacklist().Get(i);
-			if(item.IsKindOf(BlackListClass)) 
+			array<string> bl = g_Game.GetVSTConfig().Get_Blacklist();
+			if (bl.Find(itemclass) != -1)
 			{
-				//Print("[vStorage] Found Item "+BlackListClass+" IN blacklist");
 				return true;
 			}
-			
 		}
 
 		array<EntityAI> items_in_storage = new array<EntityAI>;
