@@ -71,6 +71,9 @@ class VST_Config
 	
 	[NonSerialized()]
 	protected ref array<int> Admins_hashes = {};
+	
+	[NonSerialized()]
+	protected ref array<int> Blacklist_hashes = {};
 
 		
 	void VST_Config()
@@ -113,7 +116,25 @@ class VST_Config
 		}
 	}
 
-		
+	void Update_Blacklist_Hashes()
+	{
+		if (Blacklist_hashes)
+		{
+			Blacklist_hashes.Clear();
+			if (Blacklist)
+			{
+				foreach (string b: Blacklist)
+				{
+					int hash = b.Hash();
+					if (Blacklist_hashes.Find(hash) == -1)
+					{
+						Blacklist_hashes.Insert(hash);
+					}
+				}
+			}
+		}
+	}
+	
 	bool isAdmin(string steamid)
 	{
 		if ((Admins) && (Admins_hashes) && (Admins_hashes.Count() > 0))
@@ -156,6 +177,7 @@ class VST_Config
     {
         JsonFileLoader<VST_Config>.JsonSaveFile(FULLPATH, this);
         Update_Admin_Hashes();
+		Update_Blacklist_Hashes();
     }
 
 	protected void Default()
@@ -257,6 +279,11 @@ class VST_Config
 	array<string> Get_Blacklist()
 	{
 		return Blacklist;
+	}
+	
+	array<int> Get_Blacklist_Hashes()
+	{
+		return Blacklist_hashes;
 	}
 	
 	array<string> Get_Admins()
