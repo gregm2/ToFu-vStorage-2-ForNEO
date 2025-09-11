@@ -64,6 +64,11 @@ class VST_Config
 	protected string blacklist_message_icon = "set:dayz_inventory image:barrel";
 	protected float blacklist_message_show_time_secs = 5.0;
 	
+	protected string pokehole_message_title = "Notice";
+	protected string pokehole_message_body = "Locking and virtual storage features are not available on fire barrels. Stop crafting if that matters to you.";
+	protected string pokehole_message_icon = "set:dayz_inventory image:barrel";
+	protected float pokehole_message_show_time_secs = 5.0;
+	
 	[NonSerialized()]
 	protected ref array<int> Admins_hashes = {};
 
@@ -240,6 +245,11 @@ class VST_Config
 		blacklist_message_body = "The item you have placed in the barrel is incompatible with virtual storage and has been ejected. Look for it in vicinity view";
 		blacklist_message_icon = "set:dayz_inventory image:barrel";
 		blacklist_message_show_time_secs = 5.0;
+
+		pokehole_message_title = "Notice";
+		pokehole_message_body = "Locking and virtual storage features are not available on fire barrels. Stop crafting if that matters to you.";
+		pokehole_message_icon = "set:dayz_inventory image:barrel";
+		pokehole_message_show_time_secs = 5.0;
 
 		Save(); // UpdateAdminHashes call will happen here
 	}
@@ -427,6 +437,23 @@ class VST_Config
 	float Get_blacklist_message_show_time_secs()
 	{
 		return blacklist_message_show_time_secs;
+	}
+	
+	string Get_pokehole_message_title()
+	{
+		return pokehole_message_title;
+	}
+	string Get_pokehole_message_body()
+	{
+		return pokehole_message_body;
+	}
+	string Get_pokehole_message_icon()
+	{
+		return pokehole_message_icon;
+	}
+	float Get_pokehole_message_show_time_secs()
+	{
+		return pokehole_message_show_time_secs;
 	}
 	
 	int Get_notification_cooldown_secs()

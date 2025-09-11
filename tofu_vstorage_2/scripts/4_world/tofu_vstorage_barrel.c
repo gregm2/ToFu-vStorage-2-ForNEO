@@ -610,6 +610,26 @@ modded class Barrel_ColorBase
 		}
 	}
 	
+	void vst_neo_send_pokehole_notification(PlayerIdentity identity)
+	{
+		if (!vst_neo_notify_cooldown_expired())
+		{
+			return; /* don't flood messages */
+		}
+		
+		if (!identity)
+		{
+			return; /* can't pass NULL here */
+		}
+		
+		string title = g_Game.GetVSTConfig().Get_pokehole_message_title();
+		string body = g_Game.GetVSTConfig().Get_pokehole_message_body();
+		string icon = g_Game.GetVSTConfig().Get_pokehole_message_icon();
+		float show_time = g_Game.GetVSTConfig().Get_pokehole_message_show_time_secs();
+		
+		NotificationSystem.SendNotificationToPlayerIdentityExtended(identity, show_time, title, body, icon);
+	}
+	
 	void vst_neo_send_claim_notification(PlayerIdentity identity)
 	{
 		if (!vst_neo_notify_cooldown_expired())
